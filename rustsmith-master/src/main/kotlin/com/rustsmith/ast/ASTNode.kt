@@ -5,7 +5,6 @@ import com.rustsmith.generation.ASTGenerator
 import com.rustsmith.generation.Context
 import com.rustsmith.generation.IdentGenerator
 import com.rustsmith.recondition.Macros
-import kotlin.math.max
 
 sealed interface ASTNode {
     fun toRust(): String
@@ -22,16 +21,20 @@ data class FunctionDefinition(
     override fun toRust(): String {
         val inline = if (forceNoInline) "#[inline(never)]" else ""
         val self = if (addSelfVariable) "&self," else ""
-        return "$inline\nfn $functionName($self ${
-            arguments.map { "${it.key}: ${it.value.toRust()}" }.joinToString(", ")
+        return "$inline\nfn $functionName($self ${arguments.map { "${it.key}: ${it.value.toRust()}" }.joinToString(", ")
         }) -> ${returnType.toRust()} {\n${body.toRust()}\n}\n"
     }
 }
 
-data class StructDefinition(val structType: LifetimeParameterizedType<StructType>, val methods: MutableList<FunctionDefinition> = mutableListOf()) : ASTNode {
+data class StructDefinition(
+    val structType: LifetimeParameterizedType<StructType>,
+    val methods: MutableList<FunctionDefinition> = mutableListOf()
+) : ASTNode {
     override fun toRust(): String {
         val traits = "#[derive(Debug)]\n"
-        val parameterizedSyntax = if (structType.lifetimeParameters().isNotEmpty()) "<${structType.lifetimeParameters().toSet().joinToString(",") { "'a$it" }}>" else ""
+        val parameterizedSyntax = if (structType.lifetimeParameters().isNotEmpty()) "<${
+        structType.lifetimeParameters().toSet().joinToString(",") { "'a$it" }
+        }>" else ""
         val structDef = "${traits}struct ${structType.type.structName}$parameterizedSyntax {\n${structType.type.types.joinToString("\n") { "${it.first}: ${it.second.toRust()}," }}\n}\n"
         val implDef = "\nimpl$parameterizedSyntax ${structType.type.structName}$parameterizedSyntax {\n ${methods.joinToString("\n") { it.toRust() }} \n}"
         return structDef + implDef
@@ -40,7 +43,9 @@ data class StructDefinition(val structType: LifetimeParameterizedType<StructType
 
 data class TypeAliasDefinition(val aliasType: LifetimeParameterizedType<TypeAliasType>) : ASTNode {
     override fun toRust(): String {
-        val parameterizedSyntax = if (aliasType.lifetimeParameters().isNotEmpty()) "<${aliasType.lifetimeParameters().toSet().joinToString(",") { "'a$it" }}>" else ""
+        val parameterizedSyntax = if (aliasType.lifetimeParameters().isNotEmpty()) "<${
+        aliasType.lifetimeParameters().toSet().joinToString(",") { "'a$it" }
+        }>" else ""
         return "type ${aliasType.type.typeAliasName}$parameterizedSyntax = ${aliasType.type.internalType.toRust()};"
     }
 }
@@ -55,15 +60,8 @@ data class Program(
 ) :
     ASTNode {
     override fun toRust(): String {
-        return "#![allow(warnings, unused, unconditional_panic)]\n" +
-                "use std::rc::Rc;\nuse std::env;\nuse std::collections::hash_map::DefaultHasher;\nuse std::hash::{Hash, Hasher};\nuse std::collections::HashMap;\n" +
-                "${constants.joinToString("\n") { it.toRust() }}\n" +
-                "${macros.joinToString("\n") { it.toRust() }}\n" +
-                "${structs.joinToString("\n") { it.toRust() }}\n" +
-                "${aliases.joinToString("\n") { it.toRust() }}\n" +
-                "${functions.joinToString("\n") { it.toRust() }}"
+        return "#![allow(warnings, unused, unconditional_panic)]\n" + "use std::rc::Rc;\nuse std::env;\nuse std::collections::hash_map::DefaultHasher;\nuse std::hash::{Hash, Hasher};\nuse std::collections::HashMap;\n" + "${constants.joinToString("\n") { it.toRust() }}\n" + "${macros.joinToString("\n") { it.toRust() }}\n" + "${structs.joinToString("\n") { it.toRust() }}\n" + "${aliases.joinToString("\n") { it.toRust() }}\n" + "${functions.joinToString("\n") { it.toRust() }}"
     }
-
 }
 
 fun generateProgram(programSeed: Long, identGenerator: IdentGenerator, failFast: Boolean): Pair<Program, List<String>> {
@@ -77,10 +75,14 @@ fun generateProgram(programSeed: Long, identGenerator: IdentGenerator, failFast:
     val astGenerator = ASTGenerator(symbolTable, failFast, identGenerator)
     val mainFunctionContext = Context(listOf(mapOf()), "main", listOf(), symbolTable)
     val numberOfConstants = CustomRandom.nextInt(10)
-    val constantDeclarations = (0..numberOfConstants).map { astGenerator.generateConstantDeclaration(mainFunctionContext) }
+    val constantDeclarations =
+        (0..numberOfConstants).map { astGenerator.generateConstantDeclaration(mainFunctionContext) }
     val body = astGenerator(mainFunctionContext)
     val bodyWithOutput =
-        StatementBlock(listOf(FetchCLIArgs(symbolTable)) + body.statements + Output(symbolTable, programSeed), symbolTable)
+        StatementBlock(
+            listOf(FetchCLIArgs(symbolTable)) + body.statements + Output(symbolTable, programSeed),
+            symbolTable
+        )
     val mainFunction = FunctionDefinition(
         functionName = "main",
         arguments = emptyMap(),
@@ -88,6 +90,18 @@ fun generateProgram(programSeed: Long, identGenerator: IdentGenerator, failFast:
         forceNoInline = false,
         addSelfVariable = false
     )
-    val cliArguments = symbolTable.globalSymbolTable.commandLineTypes.map { astGenerator.generateCLIArgumentsForLiteralType(it, mainFunctionContext) }
-    return Program(programSeed, setOf(), constantDeclarations, globalSymbolTable.typeAliases.toList(), globalSymbolTable.structs.toList(), functionSymbolTable.functions + mainFunction) to cliArguments
+    val cliArguments = symbolTable.globalSymbolTable.commandLineTypes.map {
+        astGenerator.generateCLIArgumentsForLiteralType(
+            it,
+            mainFunctionContext
+        )
+    }
+    return Program(
+        programSeed,
+        setOf(),
+        constantDeclarations,
+        globalSymbolTable.typeAliases.toList(),
+        globalSymbolTable.structs.toList(),
+        functionSymbolTable.functions + mainFunction
+    ) to cliArguments
 }

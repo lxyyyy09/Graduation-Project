@@ -5,7 +5,6 @@ const val CONST_PREFIX = "CONST"
 const val VARIABLE_PREFIX = "var"
 const val FUNCTION_PREFIX = "fun"
 const val STRUCT_PREFIX = "Struct"
-//const val HASHMAP_PERFIX = "map"
 
 class IdentGenerator {
     private val prefixMap = mutableMapOf<String, Int>().withDefault { 0 }
@@ -19,8 +18,6 @@ class IdentGenerator {
     fun generateFunctionName(): String = generate(FUNCTION_PREFIX)
 
     fun generateStructName(): String = generate(STRUCT_PREFIX)
-
-//    fun generateHashMapName(): String = generate(HASHMAP_PERFIX)
 
     private fun generate(prefix: String): String {
         prefixMap[prefix] = prefixMap.getValue(prefix) + 1

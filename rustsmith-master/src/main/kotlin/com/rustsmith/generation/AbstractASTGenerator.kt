@@ -15,36 +15,37 @@ public interface AbstractASTGenerator {
 
     public fun generateBreakStatement(ctx: Context): BreakStatement
 
-//    public fun generateStrPushStrStatement(ctx:Context):StrPushStrStatement
-
     public fun selectRandomStatement(ctx: Context): KClass<out Statement>
 
     public fun generateStatement(ctx: Context): Statement
 
-    public fun generateSpecificStatement(statement: KClass<out Statement>, ctx: Context): Statement =
-        when (statement) {
-            ExpressionStatement::class -> generateExpressionStatement(ctx)
-            Declaration::class -> generateDeclaration(ctx)
-            Assignment::class -> generateAssignment(ctx)
-            PrintElementStatement::class -> generatePrintElementStatement(ctx)
-            ReturnStatement::class -> generateReturnStatement(ctx)
-            BreakStatement::class -> generateBreakStatement(ctx)
-//            StrPushStrStatement::class->generateStrPushStrStatement(ctx)
-            else -> throw Exception("Unrecognized type")
-        }
+    public fun generateSpecificStatement(statement: KClass<out Statement>, ctx: Context): Statement = when (statement) {
+        ExpressionStatement::class -> generateExpressionStatement(ctx)
+        Declaration::class -> generateDeclaration(ctx)
+        Assignment::class -> generateAssignment(ctx)
+        PrintElementStatement::class -> generatePrintElementStatement(ctx)
+        ReturnStatement::class -> generateReturnStatement(ctx)
+        BreakStatement::class -> generateBreakStatement(ctx)
+        else -> throw Exception("Unrecognized type")
+    }
 
     public fun generateVoidLiteral(type: Type, ctx: Context): VoidLiteral
 
     public fun generateElementAccess(type: Type, ctx: Context): ElementAccess
 
     public fun generateNewBoxExpression(type: Type, ctx: Context): NewBoxExpression
+
     public fun generateNewRcExpression(type: Type, ctx: Context): NewRcExpression
-    public fun generateNewHashMapExpression(type:Type,ctx:Context):NewHashMapExpression
+
+    public fun generateNewHashMapExpression(type: Type, ctx: Context): NewHashMapExpression
+
+    public fun generateHashMapLengthExpression(type: Type, ctx: Context): HashMapLengthExpression
+//    public fun generateHashMapAccessExpression(type:Type,ctx:Context):HashMapElementAccessExpression
+//    public fun generateHashMapInsertExpression(type:Type,ctx:Context):HashMapInsertExpression
 
     public fun generateTypeAliasExpression(type: Type, ctx: Context): TypeAliasExpression
 
-    public fun generateCLIArgumentAccessExpression(type: Type, ctx: Context):
-        CLIArgumentAccessExpression
+    public fun generateCLIArgumentAccessExpression(type: Type, ctx: Context): CLIArgumentAccessExpression
 
     public fun generateInt8Literal(type: Type, ctx: Context): Int8Literal
 
@@ -75,15 +76,14 @@ public interface AbstractASTGenerator {
     public fun generateStringLiteral(type: Type, ctx: Context): StringLiteral
 
     public fun generateStringLengthExpression(type: Type, ctx: Context): StringLengthExpression
-    public fun generateStringPushStrExpression(type: Type, ctx: Context): StringPushStrExpression
 
+    public fun generateStringPushStrExpression(type: Type, ctx: Context): StringPushStrExpression
 
     public fun generateBooleanLiteral(type: Type, ctx: Context): BooleanLiteral
 
     public fun generateTupleLiteral(type: Type, ctx: Context): TupleLiteral
 
-    public fun generateStructInstantiationExpression(type: Type, ctx: Context):
-        StructInstantiationExpression
+    public fun generateStructInstantiationExpression(type: Type, ctx: Context): StructInstantiationExpression
 
     public fun generateVectorLiteral(type: Type, ctx: Context): VectorLiteral
 
@@ -93,8 +93,7 @@ public interface AbstractASTGenerator {
 
     public fun generateStaticSizedArrayLiteral(type: Type, ctx: Context): StaticSizedArrayLiteral
 
-    public fun generateStaticSizedArrayDefaultLiteral(type: Type, ctx: Context):
-        StaticSizedArrayDefaultLiteral
+    public fun generateStaticSizedArrayDefaultLiteral(type: Type, ctx: Context): StaticSizedArrayDefaultLiteral
 
     public fun generateDereferenceExpression(type: Type, ctx: Context): DereferenceExpression
 
@@ -148,8 +147,7 @@ public interface AbstractASTGenerator {
 
     public fun generateReferenceExpression(type: Type, ctx: Context): ReferenceExpression
 
-    public fun generateMutableReferenceExpression(type: Type, ctx: Context):
-        MutableReferenceExpression
+    public fun generateMutableReferenceExpression(type: Type, ctx: Context): MutableReferenceExpression
 
     public fun generateVectorLengthExpression(type: Type, ctx: Context): VectorLengthExpression
 
@@ -167,8 +165,11 @@ public interface AbstractASTGenerator {
         VoidLiteral::class -> generateVoidLiteral(type, ctx)
         ElementAccess::class -> generateElementAccess(type, ctx)
         NewBoxExpression::class -> generateNewBoxExpression(type, ctx)
-        NewRcExpression::class -> generateNewRcExpression(type,ctx)
-        NewHashMapExpression::class -> generateNewHashMapExpression(type,ctx)
+        NewRcExpression::class -> generateNewRcExpression(type, ctx)
+        NewHashMapExpression::class -> generateNewHashMapExpression(type, ctx)
+        HashMapLengthExpression::class -> generateHashMapLengthExpression(type, ctx)
+//        HashMapElementAccessExpression::class->generateHashMapAccessExpression(type,ctx)
+//        HashMapInsertExpression::class->generateHashMapInsertExpression(type,ctx)
         TypeAliasExpression::class -> generateTypeAliasExpression(type, ctx)
         CLIArgumentAccessExpression::class -> generateCLIArgumentAccessExpression(type, ctx)
         Int8Literal::class -> generateInt8Literal(type, ctx)
@@ -185,8 +186,8 @@ public interface AbstractASTGenerator {
         Float32Literal::class -> generateFloat32Literal(type, ctx)
         Float64Literal::class -> generateFloat64Literal(type, ctx)
         StringLiteral::class -> generateStringLiteral(type, ctx)
-        StringLengthExpression::class -> generateStringLengthExpression(type,ctx)
-        StringPushStrExpression::class -> generateStringPushStrExpression(type,ctx)
+        StringLengthExpression::class -> generateStringLengthExpression(type, ctx)
+        StringPushStrExpression::class -> generateStringPushStrExpression(type, ctx)
         BooleanLiteral::class -> generateBooleanLiteral(type, ctx)
         TupleLiteral::class -> generateTupleLiteral(type, ctx)
         StructInstantiationExpression::class -> generateStructInstantiationExpression(type, ctx)
@@ -231,8 +232,6 @@ public interface AbstractASTGenerator {
 
     public fun generateStringType(ctx: Context): StringType
 
-//    public fun generateStringPushStr(ctx:Context):StringType
-
     public fun generateBoolType(ctx: Context): BoolType
 
     public fun generateI8Type(ctx: Context): I8Type
@@ -270,8 +269,10 @@ public interface AbstractASTGenerator {
     public fun generateOptionType(ctx: Context): OptionType
 
     public fun generateBoxType(ctx: Context): BoxType
+
     public fun generateRcType(ctx: Context): RcType
-    public fun generateHashMapType(ctx:Context):HashMapType
+
+    public fun generateHashMapType(ctx: Context): HashMapType
 
     public fun generateTypeAliasType(ctx: Context): TypeAliasType
 
@@ -305,8 +306,8 @@ public interface AbstractASTGenerator {
         VectorType::class -> generateVectorType(ctx)
         OptionType::class -> generateOptionType(ctx)
         BoxType::class -> generateBoxType(ctx)
-        RcType::class->generateRcType(ctx)
-        HashMapType::class->generateHashMapType(ctx)
+        RcType::class -> generateRcType(ctx)
+        HashMapType::class -> generateHashMapType(ctx)
         TypeAliasType::class -> generateTypeAliasType(ctx)
         ReferenceType::class -> generateReferenceType(ctx)
         MutableReferenceType::class -> generateMutableReferenceType(ctx)

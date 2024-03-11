@@ -315,47 +315,6 @@ class ASTGenerator(
         return BreakStatement(symbolTable)
     }
 
-    /*
-    override fun generateStrPushStrStatement(ctx: Context): StrPushStrStatement {
-        //仿照assignmentstatement
-//        val lhs = symbolTable.getRandomMutableVariable(ctx)
-        //不确定getRandomVariableOfType中的参数是否填写正确
-        val lhsList=symbolTable.getRandomVariableOfType(StringType,null,ctx,true)
-
-        return if (lhsList.isEmpty()) {
-            if (failFast) throw StatementGenerationRejectedException()
-            Logger.logText("No StringType variable found, so create declaration", ctx, Color.LIGHT_BLUE)
-            val declaration = generateDependantDeclarationOfType(
-                generateStringType(ctx),
-                true,
-                ctx.forDependantDeclaration().incrementCount(StrPushStrStatement::class)
-            )
-            dependantStatements.add(declaration)
-            val value=generateStringLiteral(StringType,ctx)
-            StrPushStrStatement(Variable(declaration.variableName, symbolTable), value, symbolTable)
-        } else {
-            val lhs=lhsList.randomOrNull()
-            val value=generateStringLiteral(StringType,ctx)
-            StrPushStrStatement(Variable(lhs as String,symbolTable), value, symbolTable)
-
-
-//            val lhsType=lhs.node.toType()
-//            val value=generateStringLiteral(StringType,ctx)
-//            if(lhsType is StringType){
-//                StrPushStrStatement(lhs.node, value, symbolTable)
-//            }else{
-//                val declaration = generateDependantDeclarationOfType(
-//                    generateStringType(ctx),
-//                    true,
-//                    ctx.forDependantDeclaration().incrementCount(StrPushStrStatement::class)
-//                )
-//                dependantStatements.add(declaration)
-//                StrPushStrStatement(Variable(declaration.variableName, symbolTable), value, symbolTable)
-//            }
-        }
-    }
-
-     */
     /** Expression generation **/
 
     override fun selectRandomExpression(type: Type, ctx: Context): KClass<out Expression> {
@@ -467,10 +426,7 @@ class ASTGenerator(
                 ctx
             )
 
-//            is HashMapElementAccessExpression->gen
-
             is Variable -> generateVariable(expression.value, type, ctx)
-//            is VectorAccess -> generateVectorAccess(expression.vectorExpression, expression.indexExpression, type, ctx)
             else -> TODO()
         }
     }
@@ -530,7 +486,6 @@ class ASTGenerator(
                 )
                 expressionsFromContainerElements
             }
-
         }
     }
 
@@ -738,16 +693,32 @@ class ASTGenerator(
         val optionType = generateOptionType(ctx.incrementCount(ExtractOptionExpression::class))
         val expressionToMatch = generateExpression(optionType, ctx.incrementCount(ExtractOptionExpression::class))
         val extractedVariable = identGenerator.generateVariable()
-        val matchedStatement = generateStatementBlock(type, ctx.incrementCount(ExtractOptionExpression::class), extractedVariable to optionType.type)
+        val matchedStatement = generateStatementBlock(
+            type,
+            ctx.incrementCount(ExtractOptionExpression::class),
+            extractedVariable to optionType.type
+        )
         val noneStatement = generateStatementBlock(type, ctx.incrementCount(ExtractOptionExpression::class))
-        return ExtractOptionExpression(expressionToMatch, extractedVariable, matchedStatement, noneStatement, type, symbolTable)
+        return ExtractOptionExpression(
+            expressionToMatch,
+            extractedVariable,
+            matchedStatement,
+            noneStatement,
+            type,
+            symbolTable
+        )
     }
 
-    private fun generateStatementBlock(type: Type, ctx: Context, addVariable: Pair<String, Type>? = null): StatementBlock {
+    private fun generateStatementBlock(
+        type: Type,
+        ctx: Context,
+        addVariable: Pair<String, Type>? = null
+    ): StatementBlock {
         val currentSymbolTableDepth = symbolTable.depth.value
         val newScope = symbolTable.enterScope()
         if (addVariable != null) {
-            newScope[addVariable.first] = IdentifierData(addVariable.second.clone(), false, OwnershipState.VALID, newScope.depth.value)
+            newScope[addVariable.first] =
+                IdentifierData(addVariable.second.clone(), false, OwnershipState.VALID, newScope.depth.value)
         }
         return ASTGenerator(newScope, failFast, identGenerator)(
             ctx.withSymbolTable(newScope), type, currentSymbolTableDepth
@@ -826,6 +797,7 @@ class ASTGenerator(
         }
         throw IllegalArgumentException("Not a box type")
     }
+
     override fun generateNewRcExpression(type: Type, ctx: Context): NewRcExpression {
         if (type is RcType) {
             val internalExpression = generateExpression(type.internalType, ctx.incrementCount(NewRcExpression::class))
@@ -838,24 +810,88 @@ class ASTGenerator(
         type: Type,
         ctx: Context
     ): NewHashMapExpression {
-        if(type is HashMapType){
+        if (type is HashMapType) {
             val membersWithReferenceType = type.memberTypes().filterIsInstance<ReferencingTypes>()
-            membersWithReferenceType.forEach{
+            membersWithReferenceType.forEach {
                 dependantStatements.add(
                     generateDependantDeclarationOfType(
-                        it,ctx=ctx.incrementCount(NewHashMapExpression::class)
+                        it, ctx = ctx.incrementCount(NewHashMapExpression::class)
                     )
                 )
             }
             return NewHashMapExpression(
-                keyExpression = generateExpression(type.keyType,ctx.incrementCount(NewHashMapExpression::class)),
-                valueExpression = generateExpression(type.valueType,ctx.incrementCount(NewHashMapExpression::class)),
+                keyExpression = generateExpression(type.keyType, ctx.incrementCount(NewHashMapExpression::class)),
+                valueExpression = generateExpression(type.valueType, ctx.incrementCount(NewHashMapExpression::class)),
                 symbolTable
             )
         }
         throw IllegalArgumentException("Not a HashMap type")
     }
 
+    override fun generateHashMapLengthExpression(type: Type, ctx: Context): HashMapLengthExpression {
+        val ty = symbolTable.globalSymbolTable.getRandomHashMapTypes(ctx)
+        if (ty == null) {
+            val hashMapExpression = generateExpression(
+                generateHashMapType(ctx.incrementCount(HashMapLengthExpression::class)),
+                ctx.incrementCount(HashMapLengthExpression::class)
+            )
+            return HashMapLengthExpression(hashMapExpression, symbolTable)
+        } else {
+            val list = symbolTable.getRandomVariableOfType(ty, null, ctx, true)
+            if (list.isEmpty()) {
+                val hashMapExpression = generateExpression(
+                    generateHashMapType(ctx.incrementCount(HashMapLengthExpression::class)),
+                    ctx.incrementCount(HashMapLengthExpression::class)
+                )
+                return HashMapLengthExpression(hashMapExpression, symbolTable)
+            }
+            val lhs = list.random()
+            return HashMapLengthExpression(Variable(lhs, symbolTable), symbolTable)
+        }
+    }
+    //    private fun generateHashMapAccessExpression(
+//        hashMapExpression: Expression,
+//        hashMapKeyName:String,
+//        type:Type,
+//        ctx:Context
+//    ): HashMapElementAccessExpression {
+//
+//    }
+    /*
+        override fun generateHashMapInsertExpression(type: Type, ctx: Context): HashMapInsertExpression {
+    //        val list=symbolTable.getRandomVariableOfType(type,null,ctx,true)
+    //        if(list.isEmpty()){
+                val hashMapType=generateHashMapType(ctx)
+                val declaration=generateDependantDeclarationOfType(
+                    hashMapType,
+                    true,
+                    ctx.forDependantDeclaration().incrementCount(HashMapInsertExpression::class)
+                )
+                dependantStatements.add(declaration)
+
+                val keyExpression=generateExpression(
+                    generateSpecificType(hashMapType.keyType::class,ctx),
+                    ctx
+                )
+                val valueExpression=generateExpression(
+                    generateSpecificType(hashMapType.valueType::class,ctx),
+                    ctx
+                )
+                return HashMapInsertExpression(Variable(declaration.variableName,symbolTable),keyExpression,valueExpression, symbolTable)
+    //        }else{
+    //            val lhs=list.random()
+    //            val keyExpression=generateExpression(
+    //                generateSpecificType((type as HashMapType).keyType::class,ctx.incrementCount(HashMapInsertExpression::class)),
+    //                ctx.incrementCount(HashMapInsertExpression::class)
+    //            )
+    //            val valueExpression=generateExpression(
+    //                generateSpecificType((type as HashMapType).valueType::class,ctx.incrementCount(HashMapInsertExpression::class)),
+    //                ctx.incrementCount(HashMapInsertExpression::class)
+    //            )
+    //            return HashMapInsertExpression(Variable(lhs,symbolTable),keyExpression, valueExpression, symbolTable)
+    //        }
+        }
+    */
     override fun generateTypeAliasExpression(type: Type, ctx: Context): TypeAliasExpression {
         if (type is TypeAliasType) {
             return TypeAliasExpression(
@@ -903,7 +939,6 @@ class ASTGenerator(
         )
     }
 
-
     override fun generateVectorPushExpression(type: Type, ctx: Context): VectorPushExpression {
         val arrayExpression = generateExpression(
             generateVectorType(ctx.incrementCount(VectorPushExpression::class)),
@@ -924,19 +959,19 @@ class ASTGenerator(
     }
 
     override fun generateStringPushStrExpression(type: Type, ctx: Context): StringPushStrExpression {
-        val list=symbolTable.getRandomVariableOfType(StringType,null,ctx,true)
-        val pushExpression = generateStringLiteral(StringType,ctx)
-        if(list.isEmpty()){
+        val list = symbolTable.getRandomVariableOfType(StringType, null, ctx, true)
+        val pushExpression = generateStringLiteral(StringType, ctx)
+        if (list.isEmpty()) {
             val declaration = generateDependantDeclarationOfType(
                 generateStringType(ctx),
                 true,
                 ctx.forDependantDeclaration().incrementCount(StringPushStrExpression::class)
             )
             dependantStatements.add(declaration)
-            return StringPushStrExpression(Variable(declaration.variableName,symbolTable),pushExpression,symbolTable)
-        }else{
-            val lhs=list.random()
-            return StringPushStrExpression(Variable(lhs,symbolTable), pushExpression,symbolTable)
+            return StringPushStrExpression(Variable(declaration.variableName, symbolTable), pushExpression, symbolTable)
+        } else {
+            val lhs = list.random()
+            return StringPushStrExpression(Variable(lhs, symbolTable), pushExpression, symbolTable)
         }
 //        val stringExpression = generateExpression(
 //            generateStringType(ctx.incrementCount(StringPushStrExpression::class)),
@@ -1259,10 +1294,30 @@ class ASTGenerator(
 
     /** Type generators **/
 
-//    fun selectRandomType_HashMap(ctx:Context):KClass<out Type>{
-//        val pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
-//        pickRandomByWeight.
-//    }
+    fun generateAvailableTypeForHashMap(ctx: Context): Type {
+        val pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
+        val randomType = when (pickRandomByWeight) {
+            StringType::class -> generateStringType(ctx)
+            BoolType::class -> generateBoolType(ctx)
+            I8Type::class -> generateI8Type(ctx)
+            I16Type::class -> generateI16Type(ctx)
+            I32Type::class -> generateI32Type(ctx)
+            I64Type::class -> generateI64Type(ctx)
+            I128Type::class -> generateI128Type(ctx)
+            U8Type::class -> generateU8Type(ctx)
+            U16Type::class -> generateU16Type(ctx)
+            U32Type::class -> generateU32Type(ctx)
+            U64Type::class -> generateU64Type(ctx)
+            U128Type::class -> generateU128Type(ctx)
+            USizeType::class -> generateUSizeType(ctx)
+//            F32Type::class -> generateF32Type(ctx)
+//            F64Type::class -> generateF64Type(ctx)
+//            TupleType::class -> generateTupleType(ctx)
+            else -> generateStringType(ctx)
+        }
+        return randomType
+    }
+
     override fun selectRandomType(ctx: Context): KClass<out Type> {
         val pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
         Logger.logText("Picking type: $pickRandomByWeight", ctx, Color.GREEN)
@@ -1385,6 +1440,7 @@ class ASTGenerator(
         }
         return BoxType(randomBoxType)
     }
+
     override fun generateRcType(ctx: Context): RcType {
         val randomRcType = symbolTable.globalSymbolTable.getRandomRcType()
         if (randomRcType == null || selectionManager.choiceGenerateNewTupleWeightings(ctx).randomByWeights()) {
@@ -1394,18 +1450,19 @@ class ASTGenerator(
         }
         return RcType(randomRcType)
     }
+
     override fun generateHashMapType(ctx: Context): HashMapType {
         val randomHashMapType = symbolTable.globalSymbolTable.getRandomHashMapTypes(ctx)
         if (randomHashMapType == null || selectionManager.choiceGenerateNewTupleWeightings(ctx).randomByWeights()) {
-            val currCtx=ctx.incrementCount(HashMapType::class)
-            //TODO: 如何过滤
-            val keyType = generateType(currCtx)
-            val valueType = generateType(currCtx)
-            symbolTable.globalSymbolTable.addHashMapTypes(keyType,valueType)
-            return HashMapType(keyType,valueType)
+            val currCtx = ctx.incrementCount(HashMapType::class)
+            val keyType = generateAvailableTypeForHashMap(currCtx)
+            val valueType = generateAvailableTypeForHashMap(currCtx)
+            symbolTable.globalSymbolTable.addHashMapTypes(HashMapType(keyType, valueType))
+            return HashMapType(keyType, valueType)
         }
-        return HashMapType(randomHashMapType.first,randomHashMapType.second)
+        return HashMapType(randomHashMapType.keyType, randomHashMapType.valueType)
     }
+
     private fun wrapWithLifetimeParameters(type: Type): Type {
         return when (type) {
             is RecursiveType -> when (type) {
@@ -1422,7 +1479,11 @@ class ASTGenerator(
                 is VectorType -> type.copy(type = wrapWithLifetimeParameters(type.type))
                 is BoxType -> type.copy(internalType = wrapWithLifetimeParameters(type.internalType))
                 is RcType -> type.copy(internalType = wrapWithLifetimeParameters(type.internalType))
-                is HashMapType -> type.copy(keyType = wrapWithLifetimeParameters(type.keyType), valueType = wrapWithLifetimeParameters(type.valueType))
+                is HashMapType -> type.copy(
+                    keyType = wrapWithLifetimeParameters(type.keyType),
+                    valueType = wrapWithLifetimeParameters(type.valueType)
+                )
+
                 is TypeAliasType -> LifetimeParameterizedType(type.copy(internalType = wrapWithLifetimeParameters(type.internalType)))
                 is StaticSizedArrayType -> type.copy(internalType = wrapWithLifetimeParameters(type.internalType))
                 is OptionType -> type.copy(type = wrapWithLifetimeParameters(type.type))

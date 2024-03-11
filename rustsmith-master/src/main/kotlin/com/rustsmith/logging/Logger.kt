@@ -2,7 +2,7 @@ package com.rustsmith.logging
 
 import com.andreapivetta.kolor.*
 import com.rustsmith.generation.Context
-import java.util.Date
+// import java.util.Date
 
 const val DEBUG = false
 
@@ -12,7 +12,7 @@ object Logger {
         if (DEBUG) {
             val spaceLeftSize: Int = ctx?.nodeDepthState?.sumOf { it.values.sum() } ?: 0
             val logText = Kolor.foreground("${IntRange(0, spaceLeftSize).joinToString("") { "\t" }}$text", color)
-            println("[RUSTSMITH: ${Date().toLocaleString()}]:$logText".lightBlue())
+//            println("[RUSTSMITH: ${Date().toLocaleString()}]:$logText".lightBlue())
         }
     }
 }

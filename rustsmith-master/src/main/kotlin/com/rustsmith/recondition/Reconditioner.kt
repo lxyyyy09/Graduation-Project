@@ -25,14 +25,17 @@ class Reconditioner {
                 node.copy(expr1 = expr1, expr2 = expr2),
                 symbolTable
             ) else node.copy(expr1 = expr1, expr2 = expr2)
+
             is MultiplyExpression -> if (node.toType() is IntType || node.toType() is UIntType) WrappingMul(
                 node.copy(expr1 = expr1, expr2 = expr2),
                 symbolTable
             ) else node.copy(expr1 = expr1, expr2 = expr2)
+
             is SubtractExpression -> if (node.toType() is IntType || node.toType() is UIntType) WrappingSubtract(
                 node.copy(expr1 = expr1, expr2 = expr2),
                 symbolTable
             ) else node.copy(expr1 = expr1, expr2 = expr2)
+
             is DivideExpression -> {
                 reconditioningMacros.add(ReconditionedDivision)
                 ReconditionedDivisionExpression(
@@ -40,6 +43,7 @@ class Reconditioner {
                     symbolTable
                 )
             }
+
             is ModExpression -> {
                 reconditioningMacros.add(ReconditionedMod)
                 ReconditionedModExpression(
@@ -47,6 +51,7 @@ class Reconditioner {
                     symbolTable
                 )
             }
+
             is BitwiseAndLogicalAnd -> node.copy(expr1 = expr1, expr2 = expr2)
             is BitwiseAndLogicalOr -> node.copy(expr1 = expr1, expr2 = expr2)
             is BitwiseAndLogicalXor -> node.copy(expr1 = expr1, expr2 = expr2)
@@ -64,19 +69,26 @@ class Reconditioner {
         return when (node) {
             is Int32Literal -> node
             is StringLiteral -> node
-            is StringLengthExpression-> {
+            is StringLengthExpression -> {
                 node.copy(stringExpression = reconditionExpression(node.stringExpression))
             }
+
             is StringPushStrExpression -> node.copy(
                 stringExpression = reconditionExpression(node.stringExpression),
                 pushStrExpression = reconditionExpression(node.pushStrExpression)
             )
+//            is HashMapInsertExpression->node.copy(
+//                hashMapExpression = reconditionExpression(node.hashMapExpression),
+//                keyExpression = reconditionExpression(node.keyExpression),
+//                valueExpression = reconditionExpression(node.valueExpression)
+//            )
             is Variable -> {
                 if (node.toType().getOwnership() == OwnershipModel.COPY) {
                     variableUsageCounter[node.value] = (variableUsageCounter[node.value] ?: 0) + 1
                 }
                 node
             }
+
             is BooleanLiteral -> node
             is Float64Literal -> node
             is Int128Literal -> node
@@ -92,6 +104,7 @@ class Reconditioner {
                 ifBlock = reconditionStatementBlock(node.ifBlock),
                 elseBlock = reconditionStatementBlock(node.elseBlock)
             )
+
             is FunctionCallExpression -> node.copy(args = node.args.map { reconditionExpression(it) })
             is TupleLiteral -> node.copy(values = node.values.map { reconditionExpression(it) })
             is StructInstantiationExpression -> node.copy(args = node.args.map { it.first to reconditionExpression(it.second) })
@@ -103,10 +116,12 @@ class Reconditioner {
                 predicate = reconditionExpression(node.predicate),
                 ifBlock = reconditionStatementBlock(node.ifBlock)
             )
+
             is CLIArgumentAccessExpression -> {
                 reconditioningMacros.add(ReconditionedCliArgsIndexAccess)
                 node
             }
+
             is ReferenceExpression -> node.copy(expression = reconditionExpression(node.expression))
             is MutableReferenceExpression -> node.copy(expression = reconditionExpression(node.expression))
             is DereferenceExpression -> node.copy(expression = reconditionExpression(node.expression))
@@ -127,23 +142,31 @@ class Reconditioner {
                     node.symbolTable
                 )
             }
+
             is USizeLiteral -> node
             is VectorLengthExpression -> {
                 node.copy(vectorExpression = reconditionExpression(node.vectorExpression))
             }
+
             is VectorPushExpression -> node.copy(
                 vectorExpression = reconditionExpression(node.vectorExpression),
                 pushExpression = reconditionExpression(node.pushExpression)
             )
+
             is NewBoxExpression -> node.copy(internalExpression = reconditionExpression(node.internalExpression))
             is NewRcExpression -> node.copy(internalExpression = reconditionExpression(node.internalExpression))
-            is NewHashMapExpression -> node.copy(keyExpression = reconditionExpression(node.keyExpression), valueExpression = reconditionExpression(node.valueExpression))
-            is HashMapElementAccessExpression->node.copy(expression = reconditionExpression(node.expression))
+            is NewHashMapExpression -> node.copy(
+                keyExpression = reconditionExpression(node.keyExpression),
+                valueExpression = reconditionExpression(node.valueExpression)
+            )
+//            is HashMapElementAccessExpression->node.copy(expression = reconditionExpression(node.expression))
+            is HashMapLengthExpression -> node.copy(hashMapExpression = reconditionExpression(node.hashMapExpression))
             is BoxDereferenceExpression -> node.copy(internalExpression = reconditionExpression(node.internalExpression))
             is MethodCallExpression -> node.copy(
                 structExpression = reconditionExpression(node.structExpression),
                 args = node.args.map { reconditionExpression(it) }
             )
+
             is TypeAliasExpression -> node.copy(internalExpression = reconditionExpression(node.internalExpression))
             is StaticSizedArrayDefaultLiteral -> node.copy(expression = reconditionExpression(node.expression))
             is StaticSizedArrayLiteral -> node.copy(expressions = node.expressions.map { reconditionExpression(it) })
@@ -162,7 +185,6 @@ class Reconditioner {
         return statementBlock.copy(statements = statementBlock.statements.map { reconditionStatement(it) })
     }
 
-
     private fun reconditionStatement(node: Statement): Statement {
         nodeCounters[node::class] = nodeCounters.getValue(node::class) + 1
         return when (node) {
@@ -175,7 +197,6 @@ class Reconditioner {
             is FetchCLIArgs -> node
             is PrintElementStatement -> node
             is ConstDeclaration -> node
-
         }
     }
 
@@ -203,6 +224,7 @@ class Reconditioner {
                     reconditionedFunctions
                 )
             }
+
             is Expression -> reconditionExpression(node)
             is Statement -> reconditionStatement(node)
             is FunctionDefinition -> node
@@ -212,6 +234,7 @@ class Reconditioner {
                 methods = node.methods.map { it.copy(body = reconditionStatementBlock(it.body)) }
                     .toMutableList()
             )
+
             is TypeAliasDefinition -> node
         }
     }

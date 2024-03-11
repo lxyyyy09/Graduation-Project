@@ -10,7 +10,7 @@ sealed interface Statement : ASTNode {
 data class ExpressionStatement(
     val expression: Expression,
     val addSemiColon: Boolean,
-    override val symbolTable:SymbolTable
+    override val symbolTable: SymbolTable
 ) : Statement {
     override fun toRust(): String {
         return "${expression.toRust()}${if (addSemiColon) ";" else ""}"
@@ -44,7 +44,7 @@ data class ConstDeclaration(
 }
 
 @GenNode
-data class Assignment(val lhs: LHSAssignmentNode, val value: Expression, override val symbolTable:  SymbolTable) :
+data class Assignment(val lhs: LHSAssignmentNode, val value: Expression, override val symbolTable: SymbolTable) :
     Statement {
 
     override fun toRust(): String {
@@ -57,7 +57,7 @@ sealed interface BlockEndingStatement : Statement
 @GenNode
 data class ReturnStatement(
     val expression: Expression,
-    override val symbolTable:  SymbolTable
+    override val symbolTable: SymbolTable
 ) : BlockEndingStatement {
     override fun toRust(): String {
         return "return ${expression.toRust()};"
@@ -67,7 +67,7 @@ data class ReturnStatement(
 // TODO: Change this to have expressions with break
 @GenNode
 data class BreakStatement(
-    override val symbolTable:  SymbolTable
+    override val symbolTable: SymbolTable
 ) : BlockEndingStatement {
     override fun toRust(): String {
         return "break;"
@@ -77,22 +77,21 @@ data class BreakStatement(
 @GenNode
 data class PrintElementStatement(
     val variableName: String,
-    override val symbolTable:  SymbolTable
+    override val symbolTable: SymbolTable
 ) : Statement {
     override fun toRust(): String {
         return "format!(\"{:?}\", $variableName).hash(hasher);"
     }
 }
 
-
-data class StatementBlock(val statements: List<Statement>, val symbolTable:  SymbolTable) : ASTNode {
+data class StatementBlock(val statements: List<Statement>, val symbolTable: SymbolTable) : ASTNode {
 
     override fun toRust(): String {
         return statements.joinToString("\n") { it.toRust() }
     }
 }
 
-data class FetchCLIArgs(override val symbolTable:  SymbolTable) : Statement {
+data class FetchCLIArgs(override val symbolTable: SymbolTable) : Statement {
 
     override fun toRust(): String {
 //        return "let mut s = DefaultHasher::new();\nlet hasher = &mut s;"
@@ -113,5 +112,3 @@ data class Output(override val symbolTable: SymbolTable, val programSeed: Long) 
         return hashString.joinToString("\n")
     }
 }
-
-

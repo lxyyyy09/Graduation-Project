@@ -3,8 +3,8 @@ package com.rustsmith.ast
 import com.rustsmith.CustomRandom
 import com.rustsmith.generation.Context
 import com.rustsmith.subclasses
-import com.tools.kClassType
 
+// import com.tools.kClassType
 
 enum class OwnershipState {
     VALID, BORROWED, MUTABLY_BORROWED, PARTIALLY_VALID, INVALID;
@@ -73,7 +73,7 @@ class GlobalSymbolTable {
     val arrayTypes = mutableSetOf<StaticSizedArrayType>()
     val boxTypes = mutableSetOf<Type>()
     val rcTypes = mutableSetOf<Type>()
-    val hashMapTypes = mutableSetOf<Pair<Type, Type>>()
+    val hashMapTypes = mutableSetOf<HashMapType>()
     val typeAliases = mutableSetOf<TypeAliasDefinition>()
     val commandLineTypes = mutableSetOf<LiteralType>()
 
@@ -105,24 +105,31 @@ class GlobalSymbolTable {
 
     /* HashMap methods */
 
-    fun addHashMapTypes(keyType: Type, valueType: Type) = hashMapTypes.add(Pair(keyType, valueType))
+    fun addHashMapTypes(type: HashMapType) = hashMapTypes.add(type)
+    // consider clone()?
 
-    fun getRandomHashMapTypes(ctx: Context): Pair<Type, Type>? {
+    fun getRandomHashMapTypes(ctx: Context): HashMapType? {
         if (ctx.getDepth(OptionType::class) > 0) {
-            return hashMapTypes.toList().filter { it.first.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null }
-                .filter { it.second.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null }
-                .filter { it.first.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null }
-                .filter { it.second.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null }
-                .filter { it.first.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
-                .filter { it.second.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
-                .filter { it.first.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
-                .filter { it.second.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
-                .filter { it.first.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
-                .filter { it.second.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
+            return hashMapTypes.filter {
+                it.keyType.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null
+            }
+                .filter {
+                    it.valueType.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null
+                }
+                .filter { it.keyType.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null }
+                .filter { it.valueType.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null }
+                .filter { it.keyType.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
+                .filter { it.valueType.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
+                .filter { it.keyType.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
+                .filter { it.valueType.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
+                .filter { it.keyType.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
+                .filter { it.valueType.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
                 .randomOrNull(CustomRandom)
         }
-        return hashMapTypes.toList().filter { it.first.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
-            .filter { it.second.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
+        return hashMapTypes.filter {
+            it.keyType.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null
+        }
+            .filter { it.valueType.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
             .randomOrNull(CustomRandom)
     }
 
@@ -172,7 +179,6 @@ class GlobalSymbolTable {
                 .filter {
                     it.second.type.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null
                 }
-
                 .randomOrNull(CustomRandom)
         }
         return symbolMap.toList().filter { it.second.type is StructType }.randomOrNull(CustomRandom)
@@ -190,23 +196,20 @@ class GlobalSymbolTable {
     fun addTupleType(type: TupleType) = tupleTypes.add(type.clone())
 
     fun getRandomTuple(ctx: Context): TupleType? {
-            if (ctx.getDepth(OptionType::class) > 0) {
-                return tupleTypes.filter {
-                    it.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null
-                }
-                    .filter { it.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null }
-                    .filter { it.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null }
-                    .filter { it.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
-                    .filter { it.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
-                    .filter { it.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
-
-
-                    .randomOrNull(CustomRandom)
+        if (ctx.getDepth(OptionType::class) > 0) {
+            return tupleTypes.filter {
+                it.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null
             }
-            return tupleTypes.randomOrNull(CustomRandom)
+                .filter { it.memberTypes().find { kClass -> kClass::class == MutableReferenceType::class } == null }
+                .filter { it.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null }
+                .filter { it.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
+                .filter { it.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
+                .filter { it.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null }
+                .randomOrNull(CustomRandom)
         }
+        return tupleTypes.randomOrNull(CustomRandom)
+    }
 }
-
 
 data class SymbolTable(
     val parent: SymbolTable?,
@@ -330,14 +333,14 @@ data class SymbolTable(
 
                     // TODO: Add array access
                     is VectorType -> listOf()
-                    //TODO: 过滤掉不可mut的expression
+                    // TODO: 过滤掉不可mut的expression
                     is HashMapType -> listOf()
-
                     is BoxType -> listOf()
-                    is RcType-> listOf()
+                    is RcType -> listOf()
                     is StaticSizedArrayType -> listOf()
                 }
             }
+
             else -> listOf()
         }
     }
@@ -350,10 +353,7 @@ data class SymbolTable(
             table.symbolMap.forEach { overallMap.putIfAbsent(it.key, it.value) }
         }
         return overallMap.toList().filter { it.second.validity.assignable() }.filter {
-            if (ctx.assignmentRootNode == null) true else (
-                !ctx.assignmentRootNode.map { variable -> variable.value }
-                    .contains(it.first)
-                )
+            if (ctx.assignmentRootNode == null) true else (!ctx.assignmentRootNode.map { variable -> variable.value }.contains(it.first))
         }.flatMap {
             findMutableSubExpressions(Variable(it.first, this)).map { exp ->
                 MutableVariableResult(

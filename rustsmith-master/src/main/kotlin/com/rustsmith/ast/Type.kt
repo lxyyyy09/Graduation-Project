@@ -257,7 +257,6 @@ object StringType : LiteralType, NonVoidType, EqType {
     override fun lifetimeParameters(): List<UInt> = listOf()
 
     override fun clone() = StringType
-
 }
 
 @GenNode
@@ -307,6 +306,7 @@ data class TupleType(
         other as TupleType
 
         if (types != other.types) return false
+//        if (!types.equals(other.types)) return false
 
         return true
     }
@@ -371,8 +371,6 @@ data class VectorType(val type: Type) : RecursiveType {
 
     override fun clone() = VectorType(type.clone())
 }
-
-
 
 @GenNode
 data class OptionType(val type: Type) : RecursiveType {
@@ -463,7 +461,7 @@ data class MutableReferenceType(
         other as MutableReferenceType
 
         if (internalType != other.internalType) return false
-
+//        if (!internalType.equals(other.internalType)) return false
         return true
     }
 
@@ -512,24 +510,23 @@ data class RcType(val internalType: Type) : RecursiveType {
 
 @GenNode
 data class HashMapType(
-    val keyType:Type,
-    val valueType:Type
-):RecursiveType{
+    val keyType: Type,
+    val valueType: Type
+) : RecursiveType {
 
     override val argumentsToOwnershipMap: MutableList<Pair<Type, OwnershipState>> = mutableListOf()
 
-    override fun toRust(): String{
+    override fun toRust(): String {
         return "HashMap<${keyType.toRust()},${valueType.toRust()}>"
     }
 
-    override fun memberTypes(): List<Type> = listOf(this)+this.keyType.memberTypes()+this.valueType.memberTypes()
+    override fun memberTypes(): List<Type> = listOf(this) + this.keyType.memberTypes() + this.valueType.memberTypes()
 
     override fun lifetimeParameters(): List<UInt> {
-        return keyType.lifetimeParameters()+valueType.lifetimeParameters()
+        return keyType.lifetimeParameters() + valueType.lifetimeParameters()
     }
-    override fun clone(): Type = HashMapType(keyType.clone(),valueType.clone())
 
-
+    override fun clone(): Type = HashMapType(keyType.clone(), valueType.clone())
 }
 
 @GenNode
@@ -611,6 +608,7 @@ fun Type.getOwnership(): OwnershipModel {
         StringType -> OwnershipModel.MOVE
         is TupleType -> this.types.map { it.getOwnership() }.firstOrNull { it == OwnershipModel.MOVE }
             ?: OwnershipModel.COPY
+
         is StructType -> OwnershipModel.MOVE
 
         is FunctionType -> OwnershipModel.COPY

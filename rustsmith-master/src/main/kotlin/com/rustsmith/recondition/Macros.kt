@@ -70,4 +70,3 @@ object ReconditionedCliArgsIndexAccess : Macros {
         """.trimIndent()
     }
 }
-

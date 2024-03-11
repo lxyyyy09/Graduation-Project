@@ -1,3 +1,4 @@
+// no-trailing-spaces: off
 package com.rustsmith.ast
 
 import com.rustsmith.CustomRandom
@@ -5,9 +6,9 @@ import com.rustsmith.recondition.ReconditionedArrayAccess
 import com.rustsmith.recondition.ReconditionedDivision
 import com.rustsmith.recondition.ReconditionedMod
 import java.math.BigInteger
-import kotlin.reflect.KClass
-import kotlin.math.*
+import kotlin.math.pow
 import kotlin.random.Random
+import kotlin.reflect.KClass
 
 annotation class ExpressionGenNode(val compatibleType: KClass<out Type>)
 
@@ -25,7 +26,6 @@ sealed interface LHSAssignmentNode : Expression {
 
 @ExpressionGenNode(VoidType::class)
 data class VoidLiteral(override val symbolTable: SymbolTable) : Expression {
-
     override fun toRust(): String {
         return "()"
     }
@@ -36,28 +36,28 @@ data class CLIArgumentAccessExpression(val index: Int, val type: Type, override 
     LiteralExpression {
     override fun toRust(): String {
 //        return "cli_args[reconditioned_cliargs_index_access!(cli_args,$index)].clone().parse::<${type.toRust()}>().unwrap()"
-        val base=2.0;
+        val base = 2.0
         val charPool: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
         val randomString = (1..CustomRandom.nextInt(100))
             .map { charPool[CustomRandom.nextInt(0, charPool.size)] }
             .joinToString("")
-        val tmp=when (type.toRust()) {
-            "i8" ->  (-base.pow(7).toInt()..(base.pow(7)-1).toInt()).random().toInt();
-            "i16" ->  (-base.pow(15).toInt()..(base.pow(15)-1).toInt()).random();
-            "i32" -> (-base.pow(31).toInt()..(base.pow(31)-1).toInt()).random();
-            "i64"-> (-base.pow(63).toInt()..(base.pow(63)-1).toInt()).random();
-            "i128"->(-base.pow(127).toInt()..(base.pow(127)-1).toInt()).random();
-            "u8"->(0..(base.pow(8)-1).toInt()).random();
-            "u16"->(0..(base.pow(16)-1).toInt()).random();
-            "u32"->(0..(base.pow(32)-1).toInt()).random();
-            "u64"->(0..(base.pow(64)-1).toInt()).random();
-            "u128"->(0..(base.pow(128)-1).toInt()).random();
-            "usize" -> (0..(base.pow(32)-1).toInt()).random();
-            "f32"-> Random.nextFloat()+(-base.pow(10).toInt()..(base.pow(10)).toInt()).random()*1.0;
-            "f64" -> Random.nextDouble()+(-base.pow(10).toInt()..(base.pow(10)).toInt()).random()*1.0;
-            "bool" -> Random.nextBoolean();
-            "String" -> "\"$randomString\".to_string()";
-            else -> "\"$randomString\".to_string()";
+        val tmp = when (type.toRust()) {
+            "i8" -> (-base.pow(7).toInt()..(base.pow(7) - 1).toInt()).random().toInt()
+            "i16" -> (-base.pow(15).toInt()..(base.pow(15) - 1).toInt()).random()
+            "i32" -> (-base.pow(31).toInt()..(base.pow(31) - 1).toInt()).random()
+            "i64" -> (-base.pow(63).toInt()..(base.pow(63) - 1).toInt()).random()
+            "i128" -> (-base.pow(127).toInt()..(base.pow(127) - 1).toInt()).random()
+            "u8" -> (0..(base.pow(8) - 1).toInt()).random()
+            "u16" -> (0..(base.pow(16) - 1).toInt()).random()
+            "u32" -> (0..(base.pow(32) - 1).toInt()).random()
+            "u64" -> (0..(base.pow(64) - 1).toInt()).random()
+            "u128" -> (0..(base.pow(128) - 1).toInt()).random()
+            "usize" -> (0..(base.pow(32) - 1).toInt()).random()
+            "f32" -> Random.nextFloat() + (-base.pow(10).toInt()..(base.pow(10)).toInt()).random() * 1.0
+            "f64" -> Random.nextDouble() + (-base.pow(10).toInt()..(base.pow(10)).toInt()).random() * 1.0
+            "bool" -> Random.nextBoolean()
+            "String" -> "\"$randomString\".to_string()"
+            else -> "\"$randomString\".to_string()"
         }
         return "cli_args[reconditioned_cliargs_index_access!(cli_args,$index)].clone().parse::<${type.toRust()}>().unwrap_or($tmp)"
     }
@@ -65,7 +65,6 @@ data class CLIArgumentAccessExpression(val index: Int, val type: Type, override 
 
 @ExpressionGenNode(I8Type::class)
 data class Int8Literal(val value: Int, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return "${value}i8"
     }
@@ -73,7 +72,6 @@ data class Int8Literal(val value: Int, override val symbolTable: SymbolTable) : 
 
 @ExpressionGenNode(I16Type::class)
 data class Int16Literal(val value: Int, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return "${value}i16"
     }
@@ -82,7 +80,6 @@ data class Int16Literal(val value: Int, override val symbolTable: SymbolTable) :
 @ExpressionGenNode(I32Type::class)
 data class Int32Literal(val value: Int, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}i32"
     }
@@ -91,7 +88,6 @@ data class Int32Literal(val value: Int, override val symbolTable: SymbolTable) :
 @ExpressionGenNode(I64Type::class)
 data class Int64Literal(val value: Long, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}i64"
     }
@@ -100,7 +96,6 @@ data class Int64Literal(val value: Long, override val symbolTable: SymbolTable) 
 @ExpressionGenNode(I128Type::class)
 data class Int128Literal(val value: BigInteger, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}i128"
     }
@@ -108,7 +103,6 @@ data class Int128Literal(val value: BigInteger, override val symbolTable: Symbol
 
 @ExpressionGenNode(U8Type::class)
 data class UInt8Literal(val value: UInt, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return "${value}u8"
     }
@@ -116,7 +110,6 @@ data class UInt8Literal(val value: UInt, override val symbolTable: SymbolTable) 
 
 @ExpressionGenNode(U16Type::class)
 data class UInt16Literal(val value: UInt, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return "${value}u16"
     }
@@ -125,7 +118,6 @@ data class UInt16Literal(val value: UInt, override val symbolTable: SymbolTable)
 @ExpressionGenNode(U32Type::class)
 data class UInt32Literal(val value: UInt, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}u32"
     }
@@ -134,7 +126,6 @@ data class UInt32Literal(val value: UInt, override val symbolTable: SymbolTable)
 @ExpressionGenNode(U64Type::class)
 data class UInt64Literal(val value: ULong, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}u64"
     }
@@ -143,7 +134,6 @@ data class UInt64Literal(val value: ULong, override val symbolTable: SymbolTable
 @ExpressionGenNode(U128Type::class)
 data class UInt128Literal(val value: BigInteger, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}u128"
     }
@@ -152,7 +142,6 @@ data class UInt128Literal(val value: BigInteger, override val symbolTable: Symbo
 @ExpressionGenNode(USizeType::class)
 data class USizeLiteral(val value: ULong, override val symbolTable: SymbolTable) :
     LiteralExpression {
-
     override fun toRust(): String {
         return "${value}usize"
     }
@@ -174,16 +163,13 @@ data class Float64Literal(val value: Double, override val symbolTable: SymbolTab
 
 @ExpressionGenNode(StringType::class)
 data class StringLiteral(val value: String, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return "String::from(\"$value\")"
     }
-    fun onlyText():String {
+    fun onlyText(): String {
         return "$value"
     }
 }
-
-//TODO:
 
 @ExpressionGenNode(USizeType::class)
 data class StringLengthExpression(
@@ -202,21 +188,16 @@ data class StringPushStrExpression(
     override val symbolTable: SymbolTable
 ) : NonMovingExpressions {
     override fun toRust(): String {
-        val text=when(pushStrExpression){
-            is StringLiteral->pushStrExpression.onlyText()
-            else->"hello world"
+        val text = when (pushStrExpression) {
+            is StringLiteral -> pushStrExpression.onlyText()
+            else -> "hello world"
         }
         return "${stringExpression.toRust()}.push_str(\"${text}\")"
     }
 }
 
-
-
-
-
 @ExpressionGenNode(BoolType::class)
 data class BooleanLiteral(val value: Boolean, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return value.toString()
     }
@@ -224,7 +205,6 @@ data class BooleanLiteral(val value: Boolean, override val symbolTable: SymbolTa
 
 @ExpressionGenNode(TupleType::class)
 data class TupleLiteral(val values: List<Expression>, override val symbolTable: SymbolTable) : LiteralExpression {
-
     override fun toRust(): String {
         return "(${values.joinToString(",") { it.toRust() }})"
     }
@@ -246,7 +226,6 @@ data class TupleElementAccessExpression(
             null
         }
     }
-
     override fun toRust(): String {
         return "${expression.toRust()}.$index"
     }
@@ -258,7 +237,6 @@ data class StructElementAccessExpression(
     val elementName: String,
     override val symbolTable: SymbolTable
 ) : RecursiveExpression, PartialMoveExpression, LHSAssignmentNode, ElementAccessExpression {
-
     override fun rootNode(): Variable? {
         return if (expression is LHSAssignmentNode) {
             expression.rootNode()
@@ -266,40 +244,18 @@ data class StructElementAccessExpression(
             null
         }
     }
-
     override fun toRust(): String {
         return "${expression.toRust()}.$elementName"
     }
 }
 
-@SwarmNode
-data class HashMapElementAccessExpression(
-    val expression: Expression,
-    val elementName: String,
+data class Variable(
+    val value: String,
     override val symbolTable: SymbolTable
-) : RecursiveExpression, PartialMoveExpression, LHSAssignmentNode, ElementAccessExpression {
-
-    override fun rootNode(): Variable? {
-        return if (expression is LHSAssignmentNode) {
-            expression.rootNode()
-        } else {
-            null
-        }
-    }
-
-    override fun toRust(): String {
-        return "${expression.toRust()}.get($elementName).cloned().unwrap()"
-    }
-}
-
-
-
-data class Variable(val value: String, override val symbolTable: SymbolTable) : LHSAssignmentNode, ElementAccessExpression {
-
+) : LHSAssignmentNode, ElementAccessExpression {
     override fun rootNode(): Variable {
         return this
     }
-
     override fun toRust(): String {
         return value
     }
@@ -307,7 +263,6 @@ data class Variable(val value: String, override val symbolTable: SymbolTable) : 
 
 @ExpressionGenNode(NonVoidType::class)
 data class ElementAccess(val expression: Expression, override val symbolTable: SymbolTable) : Expression {
-
     override fun toRust(): String {
         return expression.toRust()
     }
@@ -327,7 +282,6 @@ data class AddExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} + ${expr2.toRust()})"
     }
@@ -340,7 +294,6 @@ data class SubtractExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} - ${expr2.toRust()})"
     }
@@ -353,7 +306,6 @@ data class DivideExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} / ${expr2.toRust()})"
     }
@@ -366,7 +318,6 @@ data class MultiplyExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} * ${expr2.toRust()})"
     }
@@ -379,7 +330,6 @@ data class ModExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} % ${expr2.toRust()})"
     }
@@ -392,7 +342,6 @@ data class BitwiseAndLogicalAnd(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} & ${expr2.toRust()})"
     }
@@ -405,7 +354,6 @@ data class BitwiseAndLogicalOr(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} | ${expr2.toRust()})"
     }
@@ -418,7 +366,6 @@ data class BitwiseAndLogicalXor(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} ^ ${expr2.toRust()})"
     }
@@ -431,7 +378,6 @@ data class EqExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} == ${expr2.toRust()})"
     }
@@ -444,7 +390,6 @@ data class NEqExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} != ${expr2.toRust()})"
     }
@@ -457,7 +402,6 @@ data class GTExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} > ${expr2.toRust()})"
     }
@@ -470,7 +414,6 @@ data class GTEExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} >= ${expr2.toRust()})"
     }
@@ -483,7 +426,6 @@ data class LTExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} < ${expr2.toRust()})"
     }
@@ -496,7 +438,6 @@ data class LTEExpression(
     override val expr2: Expression,
     override val symbolTable: SymbolTable
 ) : BinOpExpression {
-
     override fun toRust(): String {
         return "(${expr1.toRust()} <= ${expr2.toRust()})"
     }
@@ -514,7 +455,6 @@ data class GroupedExpression(
 }
 
 /* Nodes that affect the change of ownership of variables */
-
 @SwarmNode
 @ExpressionGenNode(Type::class)
 data class FunctionCallExpression(
@@ -522,7 +462,6 @@ data class FunctionCallExpression(
     val args: List<Expression>,
     override val symbolTable: SymbolTable
 ) : RecursiveExpression {
-
     override fun toRust(): String {
         val arguments = args.map { it.toRust() } + "hasher"
         return "$functionName(${arguments.joinToString(",") { it }})"
@@ -537,7 +476,6 @@ data class MethodCallExpression(
     val args: List<Expression>,
     override val symbolTable: SymbolTable
 ) : RecursiveExpression {
-
     override fun toRust(): String {
         val arguments = args.map { it.toRust() } + "hasher"
         return "${structExpression.toRust()}.$methodName(${arguments.joinToString(",") { it }})"
@@ -550,13 +488,10 @@ data class StructInstantiationExpression(
     val args: List<Pair<String, Expression>>,
     override val symbolTable: SymbolTable
 ) : LiteralExpression {
-
     override fun toRust(): String {
         return "$structName {${args.joinToString(" ") { "${it.first}: ${it.second.toRust()}," }}}"
     }
 }
-
-
 
 sealed interface RecursiveStatementBlockExpression : Expression
 
@@ -658,7 +593,6 @@ data class DereferenceExpression(
             null
         }
     }
-
     override fun toRust(): String {
         return "(*${expression.toRust()})"
     }
@@ -767,6 +701,7 @@ data class NewBoxExpression(
         return "Box::new(${internalExpression.toRust()})"
     }
 }
+
 @SwarmNode
 @ExpressionGenNode(RcType::class)
 data class NewRcExpression(
@@ -778,20 +713,42 @@ data class NewRcExpression(
     }
 }
 
-
 @ExpressionGenNode(HashMapType::class)
 data class NewHashMapExpression(
     val keyExpression: Expression,
     val valueExpression: Expression,
     override val symbolTable: SymbolTable
 ) : LiteralExpression {
-
     override fun toRust(): String {
-        val kType=keyExpression.toType().toRust()
-        val vType=valueExpression.toType().toRust()
+        val kType = keyExpression.toType().toRust()
+        val vType = valueExpression.toType().toRust()
         return "HashMap::<$kType,$vType>::new()"
     }
 }
+
+@ExpressionGenNode(USizeType::class)
+data class HashMapLengthExpression(
+    val hashMapExpression: Expression,
+    override val symbolTable: SymbolTable
+) : NonMovingExpressions {
+    override fun toRust(): String {
+        return "${hashMapExpression.toRust()}.len()"
+    }
+}
+// @ExpressionGenNode(MutableReferenceType::class)
+// data class HashMapInsertExpression(
+//    val hashMapExpression: Expression,
+//    val keyExpression: Expression,
+//    val valueExpression: Expression,
+//    override val symbolTable: SymbolTable
+// ) : NonMovingExpressions {
+//    override fun toRust(): String {
+//        var keyStr:String="${keyExpression.toRust()}"
+//        var valueStr:String="${valueExpression.toRust()}"
+//        return "${hashMapExpression.toRust()}.entry("+keyStr+")"+".or_insert("+valueStr+")"
+//    }
+// }
+
 @SwarmNode
 @ExpressionGenNode(TypeAliasType::class)
 data class TypeAliasExpression(
@@ -816,7 +773,6 @@ data class BoxDereferenceExpression(
             null
         }
     }
-
     override fun toRust(): String {
         return "(*${internalExpression.toRust()})"
     }
@@ -916,6 +872,7 @@ fun Expression.toType(): Type {
         is StructInstantiationExpression -> symbolTable.globalSymbolTable[this.structName]!!.type.clone()
         is TupleElementAccessExpression -> (this.expression.toType() as TupleType).types[this.index]
         is StructElementAccessExpression -> (this.expression.toType() as StructType).types.first { it.first == elementName }.second
+//        is HashMapElementAccessExpression -> this.getValueType(this.expression)
         is LoopExpression -> VoidType
         is VoidLiteral -> VoidType
         is IfExpression -> VoidType
@@ -947,9 +904,9 @@ fun Expression.toType(): Type {
         is VectorPushExpression -> VoidType
         is NewBoxExpression -> BoxType(internalExpression.toType())
         is NewRcExpression -> RcType(internalExpression.toType())
-        is NewHashMapExpression -> HashMapType(keyExpression.toType(),valueExpression.toType())
-        is HashMapElementAccessExpression->(this.expression.toType() as HashMapType).valueType
-//        is HashMapElementAccessExpression->(this.expression.toType() as TupleType).types[this.index]
+        is NewHashMapExpression -> HashMapType(keyExpression.toType(), valueExpression.toType())
+        is HashMapLengthExpression -> USizeType
+//        is HashMapInsertExpression->MutableReferenceType(valueExpression.toType(),symbolTable.depth.value.toUInt() )
         is BoxDereferenceExpression -> (internalExpression.toType() as BoxType).internalType
         is MethodCallExpression -> symbolTable.globalSymbolTable.structs.find { it.structType.type.structName == (this.structExpression.toType() as StructType).structName }!!.methods.find { it.functionName == methodName }!!.returnType
         is TypeAliasExpression -> internalExpression.toType()

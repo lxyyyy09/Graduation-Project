@@ -22,8 +22,8 @@ interface SelectionManager {
     fun choiceGenerateNewOptionWeightings(ctx: Context): Map<Boolean, Double>
 
     fun choiceGenerateNewBoxTypeWeightings(ctx: Context): Map<Boolean, Double>
-    fun choiceGenerateNewRcTypeWeightings(ctx: Context): Map<Boolean, Double>
 
+    fun choiceGenerateNewRcTypeWeightings(ctx: Context): Map<Boolean, Double>
 
     fun choiceGenerateNewFunctionWeightings(ctx: Context): Map<Boolean, Double>
 
