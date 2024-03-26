@@ -3,6 +3,7 @@ package com.rustsmith.ast
 import com.rustsmith.CustomRandom
 import com.rustsmith.generation.Context
 import com.rustsmith.subclasses
+import java.sql.Struct
 
 // import com.tools.kClassType
 
@@ -67,6 +68,7 @@ class FunctionSymbolTable {
 class GlobalSymbolTable {
     private val symbolMap = mutableMapOf<String, IdentifierData>()
     val structs = mutableSetOf<StructDefinition>()
+    val traits = mutableSetOf<TraitDefinition>()
     val tupleTypes = mutableSetOf<TupleType>()
     val vectorTypes = mutableSetOf<Type>()
     val optionTypes = mutableSetOf<Type>()
@@ -156,7 +158,7 @@ class GlobalSymbolTable {
     fun addMethod(structType: StructType, method: FunctionDefinition) {
         structs.find { it.structType.type.structName == structType.structName }!!.methods.add(method)
     }
-
+    
     fun getRandomMethodOfType(type: Type): Pair<StructType, FunctionDefinition>? {
         return structs.flatMap { struct -> struct.methods.map { struct.structType.type to it } }
             .filter { it.second.returnType == type }.randomOrNull(CustomRandom)
@@ -190,7 +192,24 @@ class GlobalSymbolTable {
                 .randomOrNull(CustomRandom)
         return (symbolMap[structDefinition?.structType?.type?.structName]?.type as StructType?)
     }
-
+    
+    /* Trait methods */
+    
+    fun addTrait(traitDefinition: TraitDefinition) = traits.add(traitDefinition)
+    
+    fun getRandomTrait(ctx: Context): TraitType? {
+        return traits.randomOrNull(CustomRandom)?.traitType
+    }
+    
+    fun addTraitMap(traitType: TraitType,structType: StructType,func: FunctionDefinition){
+        val traitMap = traits.find { it.traitType.traitName == traitType.traitName }!!.traitMap
+        if(traitMap.get(structType)==null){
+            traitMap.put(structType, mutableListOf(func))
+        }else{
+            traitMap.get(structType)!!.add(func)
+        }
+    }
+    
     /* Tuple methods */
 
     fun addTupleType(type: TupleType) = tupleTypes.add(type.clone())

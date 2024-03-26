@@ -263,6 +263,8 @@ public interface AbstractASTGenerator {
     public fun generateTupleType(ctx: Context): TupleType
 
     public fun generateStructType(ctx: Context): StructType
+    
+    public fun generateTraitType(ctx: Context): TraitType
 
     public fun generateVectorType(ctx: Context): VectorType
 
@@ -303,6 +305,7 @@ public interface AbstractASTGenerator {
         F64Type::class -> generateF64Type(ctx)
         TupleType::class -> generateTupleType(ctx)
         StructType::class -> generateStructType(ctx)
+        TraitType::class -> generateTraitType(ctx)
         VectorType::class -> generateVectorType(ctx)
         OptionType::class -> generateOptionType(ctx)
         BoxType::class -> generateBoxType(ctx)

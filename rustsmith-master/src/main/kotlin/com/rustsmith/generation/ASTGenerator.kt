@@ -1319,7 +1319,10 @@ class ASTGenerator(
     }
 
     override fun selectRandomType(ctx: Context): KClass<out Type> {
-        val pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
+        var pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
+        while(pickRandomByWeight == TraitType::class){
+            pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
+        }
         Logger.logText("Picking type: $pickRandomByWeight", ctx, Color.GREEN)
         return pickRandomByWeight
     }
@@ -1391,6 +1394,15 @@ class ASTGenerator(
             return createNewStructType(ctx)
         } else {
             return randomStructType.second.type.clone() as StructType
+        }
+    }
+    
+    override fun generateTraitType(ctx: Context): TraitType {
+        val randomTraitType = symbolTable.globalSymbolTable.getRandomTrait(ctx)
+        if(selectionManager.choiceGenerateNewStructWeightings(ctx).randomByWeights() || randomTraitType == null){
+            return createNewTraitType(ctx)
+        } else {
+            return randomTraitType
         }
     }
 
@@ -1473,7 +1485,7 @@ class ASTGenerator(
                         }
                     )
                 )
-
+                is TraitType -> type.copy()
                 is TupleType -> type.copy(types = type.types.map { wrapWithLifetimeParameters(it) })
 
                 is VectorType -> type.copy(type = wrapWithLifetimeParameters(type.type))
@@ -1518,6 +1530,16 @@ class ASTGenerator(
         return structType
     }
 
+    private fun createNewTraitType(ctx:Context):TraitType{
+        val traitName = identGenerator.generateTraitName()
+        return TraitType(traitName)
+    }
+
+//    // 为某个struct实现trait内所有函数
+//    private fun generateTraitFunc4Struct(ctx: Context){
+//
+//    }
+    
     fun generateCLIArgumentsForLiteralType(type: LiteralType, ctx: Context): String {
         return when (type) {
             BoolType -> generateBooleanLiteral(type, ctx).value.toString()

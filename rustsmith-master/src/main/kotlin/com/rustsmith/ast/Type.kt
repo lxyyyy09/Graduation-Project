@@ -373,6 +373,21 @@ data class VectorType(val type: Type) : RecursiveType {
 }
 
 @GenNode
+data class TraitType(val traitName: String): RecursiveType {
+    override val argumentsToOwnershipMap: MutableList<Pair<Type, OwnershipState>> = mutableListOf()
+    override fun toRust(): String {
+        return traitName
+    }
+
+    override fun memberTypes(): List<Type> = listOf()
+
+    override fun lifetimeParameters(): List<UInt> = listOf()
+
+    override fun clone() = TraitType(traitName)
+}
+
+
+@GenNode
 data class OptionType(val type: Type) : RecursiveType {
     override val argumentsToOwnershipMap: MutableList<Pair<Type, OwnershipState>> = mutableListOf()
     override fun toRust(): String {
@@ -610,7 +625,7 @@ fun Type.getOwnership(): OwnershipModel {
             ?: OwnershipModel.COPY
 
         is StructType -> OwnershipModel.MOVE
-
+        is TraitType -> OwnershipModel.MOVE
         is FunctionType -> OwnershipModel.COPY
         VoidType -> OwnershipModel.COPY
         is ReferenceType -> OwnershipModel.COPY

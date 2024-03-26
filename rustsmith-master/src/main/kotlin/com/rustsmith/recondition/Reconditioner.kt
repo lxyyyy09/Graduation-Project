@@ -205,6 +205,7 @@ class Reconditioner {
             is Program -> {
                 nodeCounters[FunctionDefinition::class] = node.functions.size
                 nodeCounters[StructDefinition::class] = node.structs.size
+                nodeCounters[TraitDefinition::class] = node.traits.size
                 val reconditionedFunctions = node.functions.map { it.copy(body = reconditionStatementBlock(it.body)) }
                 val reconditionedStructs = node.structs.map {
                     it.copy(
@@ -215,12 +216,23 @@ class Reconditioner {
                         }.toMutableList()
                     )
                 }
+                val reconditionedTraits = node.traits.map {
+                    it.traitMap.map {
+                        it.key to
+                        it.value.map{
+                            func -> func.copy(body = reconditionStatementBlock(func.body))
+                        }.toMutableList()
+                    }as TraitDefinition
+                }
+                
                 Program(
                     node.seed,
                     reconditioningMacros,
                     node.constants,
                     node.aliases,
                     reconditionedStructs,
+//                    reconditionedTraits,
+                    node.traits,
                     reconditionedFunctions
                 )
             }
@@ -234,7 +246,15 @@ class Reconditioner {
                 methods = node.methods.map { it.copy(body = reconditionStatementBlock(it.body)) }
                     .toMutableList()
             )
-
+            is TraitDefinition -> node.copy(
+                traitMap = node.traitMap.map {
+                    it.key to
+                    it.value.map {
+                        it.copy(body = reconditionStatementBlock(it.body))
+                    }.toMutableList()
+                }as MutableMap<StructType, MutableList<FunctionDefinition>>
+            )
+            
             is TypeAliasDefinition -> node
         }
     }
