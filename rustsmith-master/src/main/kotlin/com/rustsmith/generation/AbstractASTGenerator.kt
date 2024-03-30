@@ -14,6 +14,8 @@ public interface AbstractASTGenerator {
     public fun generateReturnStatement(ctx: Context): ReturnStatement
 
     public fun generateBreakStatement(ctx: Context): BreakStatement
+    
+    public fun generateTraitStatement(ctx: Context): TraitStatement
 
     public fun selectRandomStatement(ctx: Context): KClass<out Statement>
 
@@ -26,6 +28,7 @@ public interface AbstractASTGenerator {
         PrintElementStatement::class -> generatePrintElementStatement(ctx)
         ReturnStatement::class -> generateReturnStatement(ctx)
         BreakStatement::class -> generateBreakStatement(ctx)
+        TraitStatement::class -> generateTraitStatement(ctx)
         else -> throw Exception("Unrecognized type")
     }
 
@@ -84,6 +87,8 @@ public interface AbstractASTGenerator {
     public fun generateTupleLiteral(type: Type, ctx: Context): TupleLiteral
 
     public fun generateStructInstantiationExpression(type: Type, ctx: Context): StructInstantiationExpression
+    
+//    public fun generateTraitInstantiationExpression(type: Type,ctx: Context): TraitInstantiationExpression
 
     public fun generateVectorLiteral(type: Type, ctx: Context): VectorLiteral
 
@@ -191,6 +196,7 @@ public interface AbstractASTGenerator {
         BooleanLiteral::class -> generateBooleanLiteral(type, ctx)
         TupleLiteral::class -> generateTupleLiteral(type, ctx)
         StructInstantiationExpression::class -> generateStructInstantiationExpression(type, ctx)
+//        TraitInstantiationExpression::class -> generateTraitInstantiationExpression(type,ctx)
         VectorLiteral::class -> generateVectorLiteral(type, ctx)
         SomeLiteral::class -> generateSomeLiteral(type, ctx)
         NoneLiteral::class -> generateNoneLiteral(type, ctx)
@@ -264,7 +270,7 @@ public interface AbstractASTGenerator {
 
     public fun generateStructType(ctx: Context): StructType
     
-    public fun generateTraitType(ctx: Context): TraitType
+//    public fun generateTraitType(ctx: Context): TraitType
 
     public fun generateVectorType(ctx: Context): VectorType
 
@@ -305,7 +311,7 @@ public interface AbstractASTGenerator {
         F64Type::class -> generateF64Type(ctx)
         TupleType::class -> generateTupleType(ctx)
         StructType::class -> generateStructType(ctx)
-        TraitType::class -> generateTraitType(ctx)
+//        TraitType::class -> generateTraitType(ctx)
         VectorType::class -> generateVectorType(ctx)
         OptionType::class -> generateOptionType(ctx)
         BoxType::class -> generateBoxType(ctx)

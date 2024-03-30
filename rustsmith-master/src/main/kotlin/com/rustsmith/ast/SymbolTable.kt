@@ -68,7 +68,7 @@ class FunctionSymbolTable {
 class GlobalSymbolTable {
     private val symbolMap = mutableMapOf<String, IdentifierData>()
     val structs = mutableSetOf<StructDefinition>()
-    val traits = mutableSetOf<TraitDefinition>()
+//    val traits = mutableSetOf<TraitDefinition>()
     val tupleTypes = mutableSetOf<TupleType>()
     val vectorTypes = mutableSetOf<Type>()
     val optionTypes = mutableSetOf<Type>()
@@ -193,22 +193,31 @@ class GlobalSymbolTable {
         return (symbolMap[structDefinition?.structType?.type?.structName]?.type as StructType?)
     }
     
+    fun getRandomStruct(ctx: Context,flag:Boolean):StructType?{
+        val structDefinition = structs.randomOrNull(CustomRandom)
+//            structs.filter { structDef -> structDef.structType.type.types.any { it.second == type } }
+//                .randomOrNull(CustomRandom)
+        return (symbolMap[structDefinition?.structType?.type?.structName]?.type as StructType?)
+    }
+    
+    
     /* Trait methods */
     
-    fun addTrait(traitDefinition: TraitDefinition) = traits.add(traitDefinition)
+//    fun addTrait(traitDefinition: TraitDefinition) = traits.add(traitDefinition)
+//
+//    fun getRandomTrait(ctx: Context): TraitDefinition? {
+//        return traits.randomOrNull(CustomRandom)
+//    }
     
-    fun getRandomTrait(ctx: Context): TraitType? {
-        return traits.randomOrNull(CustomRandom)?.traitType
-    }
-    
-    fun addTraitMap(traitType: TraitType,structType: StructType,func: FunctionDefinition){
-        val traitMap = traits.find { it.traitType.traitName == traitType.traitName }!!.traitMap
-        if(traitMap.get(structType)==null){
-            traitMap.put(structType, mutableListOf(func))
-        }else{
-            traitMap.get(structType)!!.add(func)
-        }
-    }
+//    fun addTraitMap(traitType: TraitType,structType: StructType,func: FunctionDefinition){
+//        val traitMap = traits.find { it.traitType.traitName == traitType.traitName }!!.traitType.traitMap
+//        val temp = traitMap.find { it.first.structName == structType.structName }
+//        if(temp != null){
+//            temp.second.add(func)
+//        }else{
+//            traitMap.add(structType to mutableListOf(func))
+//        }
+//    }
     
     /* Tuple methods */
 
@@ -342,6 +351,7 @@ data class SymbolTable(
                         ) to pair
                     }.filter { it.second.second.assignable() }
                         .flatMap { findMutableSubExpressions(it.first) }
+//                    is TraitType -> listOf()
 
                     is TupleType -> type.argumentsToOwnershipMap.mapIndexed { index, pair ->
                         TupleElementAccessExpression(

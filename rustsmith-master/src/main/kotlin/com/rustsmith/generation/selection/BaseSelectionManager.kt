@@ -25,6 +25,8 @@ open class BaseSelectionManager : SelectionManager {
         TupleType::class to 3,
         RecursiveExpression::class to 3,
         ContainerType::class to 3,
+//        RecursiveExpression::class to 1,
+//        ContainerType::class to 1,
         VectorType::class to 3,
         ElementAccess::class to 1,
         VectorLengthExpression::class to 3
@@ -37,8 +39,11 @@ open class BaseSelectionManager : SelectionManager {
        with the return type required already exists
      */
     override fun choiceGenerateNewStructWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
+    
+//    override fun choiceGenerateNewTraitWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
 
     override fun choiceGenerateNewTupleWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
+    
     override fun choiceGenerateNewVectorWeightings(ctx: Context) = mapOf(true to 0.5, false to 0.5)
 
     override fun choiceGenerateNewArrayWeightings(ctx: Context) = mapOf(true to 0.5, false to 0.5)
@@ -46,12 +51,14 @@ open class BaseSelectionManager : SelectionManager {
     override fun choiceGenerateNewOptionWeightings(ctx: Context) = mapOf(true to 0.5, false to 0.5)
 
     override fun choiceGenerateNewBoxTypeWeightings(ctx: Context) = mapOf(true to 0.5, false to 0.5)
+    
     override fun choiceGenerateNewRcTypeWeightings(ctx: Context) = mapOf(true to 0.5, false to 0.5)
 
     override fun choiceGenerateNewFunctionWeightings(ctx: Context): Map<Boolean, Double> =
         mapOf(false to 0.5, true to 0.5)
 
     override fun choiceGenerateNewCLIArgumentWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
+    
     override fun choiceGenerateNewTypeAliasWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
 
     override fun availableStatementsWeightings(ctx: Context): NodeSelectionWeighting<Statement> {

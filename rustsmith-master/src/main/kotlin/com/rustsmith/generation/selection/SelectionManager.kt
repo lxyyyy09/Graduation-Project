@@ -12,6 +12,8 @@ interface SelectionManager {
     fun choiceGenerateNewStatementWeightings(ctx: Context): Map<Boolean, Double>
 
     fun choiceGenerateNewStructWeightings(ctx: Context): Map<Boolean, Double>
+    
+//    fun choiceGenerateNewTraitWeightings(ctx: Context): Map<Boolean, Double>
 
     fun choiceGenerateNewTupleWeightings(ctx: Context): Map<Boolean, Double>
 

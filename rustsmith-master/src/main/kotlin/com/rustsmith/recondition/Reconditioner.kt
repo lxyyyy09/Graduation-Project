@@ -108,6 +108,7 @@ class Reconditioner {
             is FunctionCallExpression -> node.copy(args = node.args.map { reconditionExpression(it) })
             is TupleLiteral -> node.copy(values = node.values.map { reconditionExpression(it) })
             is StructInstantiationExpression -> node.copy(args = node.args.map { it.first to reconditionExpression(it.second) })
+//            is TraitInstantiationExpression -> node
             is TupleElementAccessExpression -> node.copy(expression = reconditionExpression(node.expression))
             is StructElementAccessExpression -> node.copy(expression = reconditionExpression(node.expression))
             is LoopExpression -> node.copy(body = reconditionStatementBlock(node.body))
@@ -197,6 +198,7 @@ class Reconditioner {
             is FetchCLIArgs -> node
             is PrintElementStatement -> node
             is ConstDeclaration -> node
+            is TraitStatement -> node
         }
     }
 
@@ -205,7 +207,7 @@ class Reconditioner {
             is Program -> {
                 nodeCounters[FunctionDefinition::class] = node.functions.size
                 nodeCounters[StructDefinition::class] = node.structs.size
-                nodeCounters[TraitDefinition::class] = node.traits.size
+//                nodeCounters[TraitDefinition::class] = node.traits.size
                 val reconditionedFunctions = node.functions.map { it.copy(body = reconditionStatementBlock(it.body)) }
                 val reconditionedStructs = node.structs.map {
                     it.copy(
@@ -216,15 +218,16 @@ class Reconditioner {
                         }.toMutableList()
                     )
                 }
-                val reconditionedTraits = node.traits.map {
-                    it.traitMap.map {
-                        it.key to
-                        it.value.map{
-                            func -> func.copy(body = reconditionStatementBlock(func.body))
-                        }.toMutableList()
-                    }as TraitDefinition
-                }
-                
+//                val reconditionedTraits=node.traits
+//                val reconditionedTraits= node.traits.map {
+//                    it.traitType.traitMap.map {
+//                        it.copy(
+//                            second = it.second.map {
+//                                func -> func.copy(body = reconditionStatementBlock(func.body))
+//                            }.toMutableList()
+//                        )
+//                    }as TraitDefinition
+//                }
                 Program(
                     node.seed,
                     reconditioningMacros,
@@ -232,7 +235,6 @@ class Reconditioner {
                     node.aliases,
                     reconditionedStructs,
 //                    reconditionedTraits,
-                    node.traits,
                     reconditionedFunctions
                 )
             }
@@ -246,14 +248,7 @@ class Reconditioner {
                 methods = node.methods.map { it.copy(body = reconditionStatementBlock(it.body)) }
                     .toMutableList()
             )
-            is TraitDefinition -> node.copy(
-                traitMap = node.traitMap.map {
-                    it.key to
-                    it.value.map {
-                        it.copy(body = reconditionStatementBlock(it.body))
-                    }.toMutableList()
-                }as MutableMap<StructType, MutableList<FunctionDefinition>>
-            )
+//            is TraitDefinition -> node
             
             is TypeAliasDefinition -> node
         }

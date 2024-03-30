@@ -7,6 +7,23 @@ sealed interface Statement : ASTNode {
 }
 
 @GenNode
+data class TraitStatement(
+    val traitName: String,
+    val traitFunctions: MutableList<Triple<String,Map<String,Type>,Type>> = mutableListOf(),
+    val traitMap: MutableList<Pair<StructType,MutableList<FunctionDefinition>>> = mutableListOf(),
+    override val symbolTable: SymbolTable
+) : Statement{
+    override fun toRust(): String {
+        var str=""
+        for (tri in traitFunctions){
+            var args=tri.second.map { "${it.key}:${it.value.toRust()}" }.toList().joinToString(",")
+            str+="fn ${tri.first} ($args)->${tri.third.toRust()};\n"
+        }
+        return "pub trait $traitName {\n$str}"
+    }
+}
+
+@GenNode
 data class ExpressionStatement(
     val expression: Expression,
     val addSemiColon: Boolean,
@@ -112,3 +129,4 @@ data class Output(override val symbolTable: SymbolTable, val programSeed: Long) 
         return hashString.joinToString("\n")
     }
 }
+

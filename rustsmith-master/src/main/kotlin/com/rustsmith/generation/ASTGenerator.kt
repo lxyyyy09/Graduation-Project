@@ -314,7 +314,24 @@ class ASTGenerator(
     override fun generateBreakStatement(ctx: Context): BreakStatement {
         return BreakStatement(symbolTable)
     }
-
+    
+    
+    override fun generateTraitStatement(ctx: Context): TraitStatement {
+        val traitName=identGenerator.generateTraitName()
+        // 生成函数声明
+        val numFuncs = CustomRandom.nextInt(1,5)
+        var funcList :MutableList<Triple<String,Map<String,Type>,Type>> = mutableListOf()
+        for (i in 1..numFuncs){
+            val numArgs = CustomRandom.nextInt(5)
+            val argTypes = (0 until numArgs).map { generateType(ctx.incrementCount(FunctionType::class)) }
+            val arguments = argTypes.associateBy { identGenerator.generateVariable() }
+            val functionName = identGenerator.generateFunctionName()
+            val functionReturnType=generateBasicLiteralType(ctx.incrementCount(FunctionType::class))
+            funcList.add(Triple(functionName,arguments,functionReturnType))
+        }
+        return TraitStatement(traitName, funcList, mutableListOf(),symbolTable)
+    }
+    
     /** Expression generation **/
 
     override fun selectRandomExpression(type: Type, ctx: Context): KClass<out Expression> {
@@ -486,6 +503,7 @@ class ASTGenerator(
                 )
                 expressionsFromContainerElements
             }
+//            is TraitType -> listOf()
         }
     }
 
@@ -1265,7 +1283,56 @@ class ASTGenerator(
             )
         }
     }
-
+    /*
+    private fun generateTraitFunction(type:TraitType,ctx:Context):Pair<StructType,FunctionDefinition>{
+        val structType = generateStructType(ctx.incrementCount(TraitInstantiationExpression::class))
+        val numArgs = CustomRandom.nextInt(5)
+        val argTypes = (0 until numArgs).map { generateType(ctx.incrementCount(FunctionType::class)) }
+        val symbolTableForFunction = SymbolTable(
+            symbolTable.root(), symbolTable.functionSymbolTable, symbolTable.globalSymbolTable
+        )
+        val arguments = argTypes.associateBy { identGenerator.generateVariable() }
+        
+        symbolTableForFunction["self"] =
+            IdentifierData(ReferenceType(structType, symbolTable.depth.value.toUInt()), false, OwnershipState.VALID, 0)
+        arguments.forEach {
+            symbolTableForFunction[it.key] = IdentifierData(it.value, false, OwnershipState.VALID, 0)
+        }
+        val bodySymbolTable = symbolTableForFunction.enterScope()
+        val functionName = identGenerator.generateFunctionName()
+        val functionDefinition = FunctionDefinition(
+            StringType, functionName,
+            arguments + mapOf(
+                "hasher" to MutableReferenceType(
+                    DefaultHasher, symbolTable.depth.value.toUInt()
+                )
+            ),
+            
+            ASTGenerator(bodySymbolTable, failFast, identGenerator)(
+                ctx.incrementCount(TraitInstantiationExpression::class).resetContextForFunction()
+                    .setReturnExpressionType(StringType).withSymbolTable(bodySymbolTable)
+                    .withFunctionName(functionName),
+                StringType
+            ),
+            CustomRandom.nextBoolean(), addSelfVariable = true
+        )
+        symbolTable.globalSymbolTable.addTraitMap(type,structType,functionDefinition)
+        return structType to functionDefinition
+    }
+    
+    override fun generateTraitInstantiationExpression(type: Type, ctx: Context): TraitInstantiationExpression {
+        if(type !is TraitType){
+            throw IllegalArgumentException("Type is not a trait type")
+        }else{
+            if(!failFast){}
+            return TraitInstantiationExpression(
+                traitName = type.traitName,
+                traitMap = type.traitMap,
+                symbolTable
+            )
+        }
+    }
+    */
     override fun generateStaticSizedArrayLiteral(type: Type, ctx: Context): StaticSizedArrayLiteral {
         if (type is StaticSizedArrayType) {
             return StaticSizedArrayLiteral(
@@ -1294,7 +1361,7 @@ class ASTGenerator(
 
     /** Type generators **/
 
-    fun generateAvailableTypeForHashMap(ctx: Context): Type {
+    fun generateBasicLiteralType(ctx: Context): Type {
         val pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
         val randomType = when (pickRandomByWeight) {
             StringType::class -> generateStringType(ctx)
@@ -1310,9 +1377,6 @@ class ASTGenerator(
             U64Type::class -> generateU64Type(ctx)
             U128Type::class -> generateU128Type(ctx)
             USizeType::class -> generateUSizeType(ctx)
-//            F32Type::class -> generateF32Type(ctx)
-//            F64Type::class -> generateF64Type(ctx)
-//            TupleType::class -> generateTupleType(ctx)
             else -> generateStringType(ctx)
         }
         return randomType
@@ -1320,9 +1384,9 @@ class ASTGenerator(
 
     override fun selectRandomType(ctx: Context): KClass<out Type> {
         var pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
-        while(pickRandomByWeight == TraitType::class){
-            pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
-        }
+//        while(pickRandomByWeight == TraitType::class){
+//            pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
+//        }
         Logger.logText("Picking type: $pickRandomByWeight", ctx, Color.GREEN)
         return pickRandomByWeight
     }
@@ -1352,6 +1416,7 @@ class ASTGenerator(
     override fun generateU64Type(ctx: Context) = U64Type
 
     override fun generateU128Type(ctx: Context) = U128Type
+    
     override fun generateUSizeType(ctx: Context): USizeType = USizeType
 
     override fun generateF32Type(ctx: Context) = F32Type
@@ -1361,6 +1426,7 @@ class ASTGenerator(
     override fun generateStringType(ctx: Context) = StringType
 
     override fun generateVoidType(ctx: Context): VoidType = VoidType
+    
     override fun generateReferenceType(ctx: Context): ReferenceType {
         val internalType = generateType(ctx.incrementCount(ReferenceType::class))
         return ReferenceType(internalType, symbolTable.depth.value.toUInt())
@@ -1397,14 +1463,14 @@ class ASTGenerator(
         }
     }
     
-    override fun generateTraitType(ctx: Context): TraitType {
-        val randomTraitType = symbolTable.globalSymbolTable.getRandomTrait(ctx)
-        if(selectionManager.choiceGenerateNewStructWeightings(ctx).randomByWeights() || randomTraitType == null){
-            return createNewTraitType(ctx)
-        } else {
-            return randomTraitType
-        }
-    }
+//    override fun generateTraitType(ctx: Context): TraitType {
+//        val randomTraitType = symbolTable.globalSymbolTable.getRandomTrait(ctx)
+//        if(selectionManager.choiceGenerateNewTraitWeightings(ctx).randomByWeights() || randomTraitType == null){
+//            return createNewTraitType(ctx)
+//        } else {
+//            return randomTraitType
+//        }
+//    }
 
     override fun generateVectorType(ctx: Context): VectorType {
         val randomVectorType = symbolTable.globalSymbolTable.getRandomVectorType()/* Create a new array type if the choice was made to, or if the choice was made not to but there are no structs
@@ -1467,8 +1533,8 @@ class ASTGenerator(
         val randomHashMapType = symbolTable.globalSymbolTable.getRandomHashMapTypes(ctx)
         if (randomHashMapType == null || selectionManager.choiceGenerateNewTupleWeightings(ctx).randomByWeights()) {
             val currCtx = ctx.incrementCount(HashMapType::class)
-            val keyType = generateAvailableTypeForHashMap(currCtx)
-            val valueType = generateAvailableTypeForHashMap(currCtx)
+            val keyType = generateBasicLiteralType(currCtx)
+            val valueType = generateBasicLiteralType(currCtx)
             symbolTable.globalSymbolTable.addHashMapTypes(HashMapType(keyType, valueType))
             return HashMapType(keyType, valueType)
         }
@@ -1485,7 +1551,7 @@ class ASTGenerator(
                         }
                     )
                 )
-                is TraitType -> type.copy()
+//                is TraitType -> type.copy()
                 is TupleType -> type.copy(types = type.types.map { wrapWithLifetimeParameters(it) })
 
                 is VectorType -> type.copy(type = wrapWithLifetimeParameters(type.type))
@@ -1530,14 +1596,12 @@ class ASTGenerator(
         return structType
     }
 
-    private fun createNewTraitType(ctx:Context):TraitType{
-        val traitName = identGenerator.generateTraitName()
-        return TraitType(traitName)
-    }
-
-//    // 为某个struct实现trait内所有函数
-//    private fun generateTraitFunc4Struct(ctx: Context){
-//
+//    private fun createNewTraitType(ctx:Context):TraitType{
+//        val traitName = identGenerator.generateTraitName()
+//        val temp=TraitType(traitName)
+//        symbolTable.globalSymbolTable.addTrait(TraitDefinition(temp))
+////        generateTraitFunction(temp,ctx)
+//        return temp
 //    }
     
     fun generateCLIArgumentsForLiteralType(type: LiteralType, ctx: Context): String {

@@ -11,6 +11,7 @@ open class OptimalSelectionManager : BaseSelectionManager() {
         FunctionCallExpression::class to 2,
         RecursiveExpression::class to 5,
         StructType::class to 5,
+//        TraitType::class to 1,
         TupleType::class to 5,
         Variable::class to 1,
         ElementAccess::class to 2,
@@ -29,6 +30,11 @@ open class OptimalSelectionManager : BaseSelectionManager() {
         val createNewStruct = 1.0 / (ctx.numberOfStructsDefined.value + 1)
         return mapOf(true to createNewStruct, false to 1.0 - createNewStruct)
     }
+    
+//    override fun choiceGenerateNewTraitWeightings(ctx: Context): Map<Boolean, Double> {
+//        val createNewTrait = 1.0 / (ctx.numberOfTraitDefined.value + 1)
+//        return  mapOf(true to createNewTrait, false to 1.0 - createNewTrait)
+//    }
 
     override fun choiceGenerateNewTupleWeightings(ctx: Context): Map<Boolean, Double> {
         val createNewTuple = 1.0 / (ctx.numberOfTuplesDefined.value + 1)

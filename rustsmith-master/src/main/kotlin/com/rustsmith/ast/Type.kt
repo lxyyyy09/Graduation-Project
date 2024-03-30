@@ -371,21 +371,36 @@ data class VectorType(val type: Type) : RecursiveType {
 
     override fun clone() = VectorType(type.clone())
 }
-
+/*
 @GenNode
-data class TraitType(val traitName: String): RecursiveType {
-    override val argumentsToOwnershipMap: MutableList<Pair<Type, OwnershipState>> = mutableListOf()
+data class TraitType(
+    val traitName: String,
+    val traitMap:MutableList<Pair<StructType,MutableList<FunctionDefinition>>> = mutableListOf()
+): LiteralType {
+//    override val argumentsToOwnershipMap: MutableList<Pair<Type, OwnershipState>> = mutableListOf()
     override fun toRust(): String {
         return traitName
     }
-
     override fun memberTypes(): List<Type> = listOf()
-
+//
     override fun lifetimeParameters(): List<UInt> = listOf()
-
-    override fun clone() = TraitType(traitName)
+//
+    override fun clone() = TraitType(traitName,traitMap)
+//
+//    override fun hashCode(): Int {
+//        return traitName.hashCode()
+//    }
+//
+//    override fun equals(other: Any?): Boolean {
+//        if(this === other)return true
+//        if(javaClass != other?.javaClass)return false
+//        other as TraitType
+//        if(traitName != other.traitName)return false
+//        if(traitMap != other.traitMap)return false
+//        return true
+//    }
 }
-
+*/
 
 @GenNode
 data class OptionType(val type: Type) : RecursiveType {
@@ -625,7 +640,7 @@ fun Type.getOwnership(): OwnershipModel {
             ?: OwnershipModel.COPY
 
         is StructType -> OwnershipModel.MOVE
-        is TraitType -> OwnershipModel.MOVE
+//        is TraitType -> OwnershipModel.MOVE
         is FunctionType -> OwnershipModel.COPY
         VoidType -> OwnershipModel.COPY
         is ReferenceType -> OwnershipModel.COPY
