@@ -2,16 +2,14 @@ package com.rustsmith.generation
 
 import AbstractASTGenerator
 import com.andreapivetta.kolor.Color
-import com.rustsmith.CustomRandom
+import com.rustsmith.*
 import com.rustsmith.ast.*
 import com.rustsmith.exceptions.ExpressionGenerationRejectedException
 import com.rustsmith.exceptions.NoAvailableExpressionException
 import com.rustsmith.exceptions.NoAvailableTypeException
 import com.rustsmith.exceptions.StatementGenerationRejectedException
 import com.rustsmith.logging.Logger
-import com.rustsmith.randomByWeights
-import com.rustsmith.selectionManager
-import com.rustsmith.subclasses
+import com.tools.kClassType
 import java.math.BigInteger
 import kotlin.math.min
 import kotlin.math.pow
@@ -316,20 +314,34 @@ class ASTGenerator(
     }
     
     
-    override fun generateTraitStatement(ctx: Context): TraitStatement {
+    override fun generateTraitStatement(ctx: Context,specificType: Type?): TraitStatement {
         val traitName=identGenerator.generateTraitName()
-        // 生成函数声明
-        val numFuncs = CustomRandom.nextInt(1,5)
-        var funcList :MutableList<Triple<String,Map<String,Type>,Type>> = mutableListOf()
-        for (i in 1..numFuncs){
+        // 仅生成函数声明，不生成函数体
+        var numFuncs = CustomRandom.nextInt(1,3)
+//        var numFuncs = 1
+        var funcList: MutableList<Triple<String,Map<String,Type>,Type>> = mutableListOf()
+        if(specificType != null){
             val numArgs = CustomRandom.nextInt(5)
-            val argTypes = (0 until numArgs).map { generateType(ctx.incrementCount(FunctionType::class)) }
+            val argTypes = (0 until numArgs).map { generateBasicLiteralType(ctx.incrementCount(TraitStatement::class)) }
             val arguments = argTypes.associateBy { identGenerator.generateVariable() }
             val functionName = identGenerator.generateFunctionName()
-            val functionReturnType=generateBasicLiteralType(ctx.incrementCount(FunctionType::class))
+            val functionReturnType = specificType
+            funcList.add(Triple(functionName,arguments,functionReturnType))
+            numFuncs -= 1
+        }
+        for (i in 1..numFuncs){
+            val numArgs = CustomRandom.nextInt(5)
+            val argTypes = (0 until numArgs).map { generateBasicLiteralType(ctx.incrementCount(TraitStatement::class)) }
+            val arguments = argTypes.associateBy { identGenerator.generateVariable() }
+            val functionName = identGenerator.generateFunctionName()
+            val functionReturnType = generateBasicLiteralType(ctx.incrementCount(TraitStatement::class))
             funcList.add(Triple(functionName,arguments,functionReturnType))
         }
-        return TraitStatement(traitName, funcList, mutableListOf(),symbolTable)
+        val ans=TraitStatement(traitName, funcList, mutableListOf(),symbolTable)
+        symbolTable.globalSymbolTable[ans.traitName] =
+            IdentifierData(TraitType(ans.traitName,ans.traitFunctions,ans.traitMap,ans.symbolTable),false,OwnershipState.VALID,symbolTable.depth.value)
+        symbolTable.globalSymbolTable.addTrait(ans)
+        return ans
     }
     
     /** Expression generation **/
@@ -340,12 +352,34 @@ class ASTGenerator(
         Logger.logText("Picking expression $pickRandomByWeight for type:${type.toRust()}", ctx, Color.GREEN)
         return pickRandomByWeight
     }
+    
+    private fun selectRandomExpressionNoTraitFunctionCall(type: Type, ctx: Context): KClass<out Expression> {
+        val availableExpressionsWeightings = selectionManager.availableExpressionsWeightings(ctx, type)
+        var pickRandomByWeight = availableExpressionsWeightings.pickRandomByWeight()
+        while(true){
+            when(pickRandomByWeight){
+                TraitFunctionCallExpression::class -> {
+                    pickRandomByWeight = availableExpressionsWeightings.pickRandomByWeight()
+                }
+                else -> {
+                    break
+                }
+            }
+        }
+        Logger.logText("Picking expression $pickRandomByWeight for type:${type.toRust()}", ctx, Color.GREEN)
+        return pickRandomByWeight
+    }
 
     override fun generateExpression(type: Type, ctx: Context): Expression {
         val symbolTableSnapshot = symbolTable.snapshot()
         var currentCtx = ctx
         while (true) {
-            val currentlyChosenExpression = selectRandomExpression(type, currentCtx)
+            var currentlyChosenExpression: KClass<out Expression>
+            if(type is ReferenceType||type is MutableReferenceType){
+                currentlyChosenExpression = selectRandomExpressionNoTraitFunctionCall(type, currentCtx)
+            }else{
+                currentlyChosenExpression = selectRandomExpression(type, currentCtx)
+            }
             try {
                 return generateSpecificExpression(currentlyChosenExpression, type, ctx)
             } catch (e: ExpressionGenerationRejectedException) {
@@ -958,12 +992,24 @@ class ASTGenerator(
     }
 
     override fun generateVectorPushExpression(type: Type, ctx: Context): VectorPushExpression {
-        val arrayExpression = generateExpression(
-            generateVectorType(ctx.incrementCount(VectorPushExpression::class)),
-            ctx.incrementCount(VectorPushExpression::class)
+//        val arrayExpression = generateExpression(
+//            generateVectorType(ctx.incrementCount(VectorPushExpression::class)),
+//            ctx.incrementCount(VectorPushExpression::class)
+//        )
+//        val pushExpression = generateExpression(arrayExpression.toType(), ctx.incrementCount(VectorPushExpression::class))
+//        val pushExpression = generateExpression((arrayExpression.toType() as VectorType).type, ctx.incrementCount(VectorPushExpression::class))
+//        if(arrayExpression.toType()!=pushExpression.toType()){
+//            println("vector push error!not equal!")
+//        }
+        val vectorType = generateVectorType(ctx.incrementCount(VectorPushExpression::class))
+        val declaration = generateDependantDeclarationOfType(
+            vectorType,
+            true,
+            ctx.forDependantDeclaration().incrementCount(VectorPushExpression::class)
         )
-        val pushExpression = generateExpression((arrayExpression.toType() as VectorType).type, ctx)
-        return VectorPushExpression(arrayExpression, pushExpression, symbolTable)
+        dependantStatements.add(declaration)
+        val pushExpression = generateExpression(vectorType.type,ctx.incrementCount(VectorPushExpression::class))
+        return VectorPushExpression(Variable(declaration.variableName,symbolTable), pushExpression, symbolTable)
     }
 
     override fun generateStringLengthExpression(type: Type, ctx: Context): StringLengthExpression {
@@ -1283,56 +1329,104 @@ class ASTGenerator(
             )
         }
     }
-    /*
-    private fun generateTraitFunction(type:TraitType,ctx:Context):Pair<StructType,FunctionDefinition>{
-        val structType = generateStructType(ctx.incrementCount(TraitInstantiationExpression::class))
-        val numArgs = CustomRandom.nextInt(5)
-        val argTypes = (0 until numArgs).map { generateType(ctx.incrementCount(FunctionType::class)) }
-        val symbolTableForFunction = SymbolTable(
-            symbolTable.root(), symbolTable.functionSymbolTable, symbolTable.globalSymbolTable
-        )
-        val arguments = argTypes.associateBy { identGenerator.generateVariable() }
-        
-        symbolTableForFunction["self"] =
-            IdentifierData(ReferenceType(structType, symbolTable.depth.value.toUInt()), false, OwnershipState.VALID, 0)
-        arguments.forEach {
-            symbolTableForFunction[it.key] = IdentifierData(it.value, false, OwnershipState.VALID, 0)
+    
+    override fun generateTraitFunctionCallExpression(
+        type: Type, // 函数返回类型？
+        ctx: Context
+    ): TraitFunctionCallExpression {
+        if(type is ReferenceType||type is MutableReferenceType){
+            println("wrong type!!!!")
         }
-        val bodySymbolTable = symbolTableForFunction.enterScope()
-        val functionName = identGenerator.generateFunctionName()
-        val functionDefinition = FunctionDefinition(
-            StringType, functionName,
-            arguments + mapOf(
-                "hasher" to MutableReferenceType(
-                    DefaultHasher, symbolTable.depth.value.toUInt()
+        var ans = symbolTable.globalSymbolTable.getRandomTraitFunctionOfType(type,ctx)
+        if(ans == null){
+            generateTraitStatement(ctx,type)
+            ans = symbolTable.globalSymbolTable.getRandomTraitFunctionOfType(type,ctx)
+        }
+        val traitInfo=ans!!.first
+        val funcInfo=ans!!.second
+        
+        val structType = generateStructType(ctx.incrementCount(TraitFunctionCallExpression::class))
+        val structExpression = generateExpression(structType,ctx)
+        if(!failFast){
+            val membersWithReferenceType =
+                funcInfo.second.filter { it.key != "hasher" }.map{ it.value }
+                    .flatMap { it.memberTypes().filterIsInstance<ReferencingTypes>() }
+            membersWithReferenceType.forEach{
+                dependantStatements.add(generateDependantDeclarationOfType(it,ctx=ctx.incrementCount(TraitFunctionCallExpression::class))
                 )
-            ),
-            
-            ASTGenerator(bodySymbolTable, failFast, identGenerator)(
-                ctx.incrementCount(TraitInstantiationExpression::class).resetContextForFunction()
-                    .setReturnExpressionType(StringType).withSymbolTable(bodySymbolTable)
-                    .withFunctionName(functionName),
-                StringType
-            ),
-            CustomRandom.nextBoolean(), addSelfVariable = true
+            }
+            if(traitInfo.traitMap.find { it.first.structName.equals(structType.structName) } != null){
+                // struct对应的函数体已生成，无需重复生成
+                return TraitFunctionCallExpression(
+                    structExpression,
+                    traitInfo,
+                    funcInfo.first,
+                    funcInfo.second.filter { it.key != "hasher" }.map { it.value }.map {
+                        generateExpression(it,ctx.incrementCount(TraitFunctionCallExpression::class))
+                    },
+                    funcInfo.third,
+                    symbolTable
+                )
+            }else {
+                // 生成函数体
+                var functionDefinitions: MutableList<FunctionDefinition> = mutableListOf()
+                for (traitFunction in traitInfo.traitFunctions) {
+                    val symbolTableForFunction = SymbolTable(
+                        symbolTable.root(), symbolTable.functionSymbolTable, symbolTable.globalSymbolTable
+                    )
+                    symbolTableForFunction["self"] =
+                        IdentifierData(
+                            ReferenceType(
+                                TraitType(
+                                    traitInfo.traitName,
+                                    traitInfo.traitFunctions,
+                                    mutableListOf(),
+                                    traitInfo.symbolTable
+                                ),
+                                symbolTable.depth.value.toUInt()
+                            ),
+                            false,
+                            OwnershipState.INVALID,
+                            0
+                        )
+                    traitFunction.second.forEach {
+                        symbolTableForFunction[it.key] = IdentifierData(it.value, false, OwnershipState.VALID, 0)
+                    }
+                    val bodySymbolTable = symbolTableForFunction.enterScope()
+                    val functionDefinition = FunctionDefinition(
+                        traitFunction.third,
+                        traitFunction.first,
+                        traitFunction.second + mapOf(
+                            "hasher" to MutableReferenceType(
+                                DefaultHasher, symbolTable.depth.value.toUInt()
+                            )
+                        ),
+                        ASTGenerator(bodySymbolTable, failFast, identGenerator)(
+                            ctx.incrementCount(TraitFunctionCallExpression::class).resetContextForFunction()
+                                .setReturnExpressionType(traitFunction.third).withSymbolTable(bodySymbolTable)
+                                .withFunctionName(traitFunction.first),
+                            traitFunction.third
+                        ),
+                        true,
+                        addSelfVariable = true
+                    )
+                    functionDefinitions.add(functionDefinition)
+                }
+                symbolTable.globalSymbolTable.addTraitMap(traitInfo, structType, functionDefinitions)
+            }
+        }
+        return TraitFunctionCallExpression(
+            structExpression,
+            traitInfo,
+            funcInfo.first,
+            funcInfo.second.filter { it.key != "hasher" }.map { it.value }.map {
+                generateExpression(it,ctx.incrementCount(TraitFunctionCallExpression::class))
+            },
+            funcInfo.third,
+            symbolTable
         )
-        symbolTable.globalSymbolTable.addTraitMap(type,structType,functionDefinition)
-        return structType to functionDefinition
     }
     
-    override fun generateTraitInstantiationExpression(type: Type, ctx: Context): TraitInstantiationExpression {
-        if(type !is TraitType){
-            throw IllegalArgumentException("Type is not a trait type")
-        }else{
-            if(!failFast){}
-            return TraitInstantiationExpression(
-                traitName = type.traitName,
-                traitMap = type.traitMap,
-                symbolTable
-            )
-        }
-    }
-    */
     override fun generateStaticSizedArrayLiteral(type: Type, ctx: Context): StaticSizedArrayLiteral {
         if (type is StaticSizedArrayType) {
             return StaticSizedArrayLiteral(
@@ -1384,9 +1478,9 @@ class ASTGenerator(
 
     override fun selectRandomType(ctx: Context): KClass<out Type> {
         var pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
-//        while(pickRandomByWeight == TraitType::class){
-//            pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
-//        }
+        while(pickRandomByWeight == TraitType::class){
+            pickRandomByWeight = selectionManager.availableTypesWeightings(ctx).pickRandomByWeight()
+        }
         Logger.logText("Picking type: $pickRandomByWeight", ctx, Color.GREEN)
         return pickRandomByWeight
     }

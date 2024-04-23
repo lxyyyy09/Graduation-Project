@@ -482,6 +482,22 @@ data class MethodCallExpression(
     }
 }
 
+@SwarmNode
+@ExpressionGenNode(Type::class)
+data class TraitFunctionCallExpression(
+    val structExpression: Expression,
+    val traitStatement: TraitStatement,
+    val functionName: String,
+    val args: List<Expression>,
+    val returnType: Type,
+    override val symbolTable: SymbolTable
+):RecursiveExpression{
+    override fun toRust(): String {
+        val arguments = args.map { it.toRust() } + "hasher"
+        return "${structExpression.toRust()}.$functionName(${arguments.joinToString(",") { it }})"
+    }
+}
+
 @ExpressionGenNode(StructType::class)
 data class StructInstantiationExpression(
     val structName: String,
@@ -492,36 +508,6 @@ data class StructInstantiationExpression(
         return "$structName {${args.joinToString(" ") { "${it.first}: ${it.second.toRust()}," }}}"
     }
 }
-/*
-@ExpressionGenNode(TraitType::class)
-data class TraitInstantiationExpression(
-    val traitName:String,
-    val traitMap: MutableList<Pair<StructType,MutableList<FunctionDefinition>>> = mutableListOf(),
-    override val symbolTable: SymbolTable
-) : LiteralExpression{
-    override fun toRust(): String {
-//        return "pub trait $traitName\n"
-        var str1="pub trait $traitName {\n"
-        for((key,value) in traitMap){
-            for(func in value){
-                val self = if (func.addSelfVariable) "&self," else ""
-                str1+="    fn ${func.functionName.toString()}($self ${func.arguments.map { "${it.key}:${it.value.toRust()}" }.joinToString { ", " }})->${func.returnType.toRust()};\n"
-            }
-            str1+="}"
-//            break
-        }
-        var str2=""
-        for((key,value) in traitMap){
-            str2+="impl ${traitName.toString()} for ${key.structName.toString()}{"
-            for(func in value){
-                str2+=func.toRust()
-            }
-            str2+="}\n"
-        }
-        return str1+str2
-    }
-}
-*/
 
 sealed interface RecursiveStatementBlockExpression : Expression
 
@@ -691,9 +677,8 @@ data class VectorAccess(
     override val symbolTable: SymbolTable
 ) : RecursiveExpression, NonMovingExpressions, ElementAccessExpression {
     override fun toRust(): String {
-//        reconditioned_access
-        return "${vectorExpression.toRust()}[reconditioned_access!(${vectorExpression.toRust()},${indexExpression.toRust()})]"
-
+//        return "${vectorExpression.toRust()}[reconditioned_access!(${vectorExpression.toRust()},${indexExpression.toRust()})]"
+        return "reconditioned_access!(${vectorExpression.toRust()},${indexExpression.toRust()})"
 //        return "${vectorExpression.toRust()}[${indexExpression.toRust()}]"
     }
 }
@@ -900,7 +885,6 @@ fun Expression.toType(): Type {
         is FunctionCallExpression -> (symbolTable.functionSymbolTable[this.functionName]!!.type as FunctionType).returnType.clone()
         is TupleLiteral -> TupleType(this.values.map { it.toType() })
         is StructInstantiationExpression -> symbolTable.globalSymbolTable[this.structName]!!.type.clone()
-//        is TraitInstantiationExpression -> TraitType(this.traitName) // 返回值类型？
         is TupleElementAccessExpression -> (this.expression.toType() as TupleType).types[this.index]
         is StructElementAccessExpression -> (this.expression.toType() as StructType).types.first { it.first == elementName }.second
 //        is HashMapElementAccessExpression -> this.getValueType(this.expression)
@@ -940,6 +924,7 @@ fun Expression.toType(): Type {
 //        is HashMapInsertExpression->MutableReferenceType(valueExpression.toType(),symbolTable.depth.value.toUInt() )
         is BoxDereferenceExpression -> (internalExpression.toType() as BoxType).internalType
         is MethodCallExpression -> symbolTable.globalSymbolTable.structs.find { it.structType.type.structName == (this.structExpression.toType() as StructType).structName }!!.methods.find { it.functionName == methodName }!!.returnType
+        is TraitFunctionCallExpression -> symbolTable.globalSymbolTable.traits.find { it.traitName == this.traitStatement.traitName }!!.traitFunctions.find { it.first == functionName }!!.third
         is TypeAliasExpression -> internalExpression.toType()
         is StaticSizedArrayDefaultLiteral -> StaticSizedArrayType(expression.toType(), arraySize)
         is StaticSizedArrayLiteral -> StaticSizedArrayType(expressions.first().toType(), expressions.size.toUInt())

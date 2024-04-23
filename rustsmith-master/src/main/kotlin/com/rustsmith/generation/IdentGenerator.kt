@@ -5,7 +5,7 @@ const val CONST_PREFIX = "CONST"
 const val VARIABLE_PREFIX = "var"
 const val FUNCTION_PREFIX = "fun"
 const val STRUCT_PREFIX = "Struct"
-const val TRAIT_PREFIX ="trait"
+const val TRAIT_PREFIX ="Trait"
 
 class IdentGenerator {
     private val prefixMap = mutableMapOf<String, Int>().withDefault { 0 }

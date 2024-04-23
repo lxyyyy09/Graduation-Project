@@ -20,6 +20,7 @@ open class AggressiveSelectionManager(
 
     override fun availableStatementsWeightings(ctx: Context): NodeSelectionWeighting<Statement> {
         val weightings = super.availableStatementsWeightings(ctx)
+        weightings.removeWeighting(TraitStatement::class)
         if (aggressiveNode.isSubclassOf(Statement::class)) {
             weightings.updateWeighting(
                 aggressiveNode as KClass<out Statement>,

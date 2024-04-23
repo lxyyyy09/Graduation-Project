@@ -68,7 +68,7 @@ class FunctionSymbolTable {
 class GlobalSymbolTable {
     private val symbolMap = mutableMapOf<String, IdentifierData>()
     val structs = mutableSetOf<StructDefinition>()
-//    val traits = mutableSetOf<TraitDefinition>()
+    val traits = mutableSetOf<TraitStatement>()
     val tupleTypes = mutableSetOf<TupleType>()
     val vectorTypes = mutableSetOf<Type>()
     val optionTypes = mutableSetOf<Type>()
@@ -181,6 +181,7 @@ class GlobalSymbolTable {
                 .filter {
                     it.second.type.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null
                 }
+                .filter { it.second.type is StructType }
                 .randomOrNull(CustomRandom)
         }
         return symbolMap.toList().filter { it.second.type is StructType }.randomOrNull(CustomRandom)
@@ -195,30 +196,110 @@ class GlobalSymbolTable {
     
     fun getRandomStruct(ctx: Context,flag:Boolean):StructType?{
         val structDefinition = structs.randomOrNull(CustomRandom)
-//            structs.filter { structDef -> structDef.structType.type.types.any { it.second == type } }
-//                .randomOrNull(CustomRandom)
         return (symbolMap[structDefinition?.structType?.type?.structName]?.type as StructType?)
     }
     
-    
     /* Trait methods */
     
-//    fun addTrait(traitDefinition: TraitDefinition) = traits.add(traitDefinition)
-//
-//    fun getRandomTrait(ctx: Context): TraitDefinition? {
-//        return traits.randomOrNull(CustomRandom)
-//    }
+    fun addTrait(type:TraitStatement)=traits.add(type.copy())
     
-//    fun addTraitMap(traitType: TraitType,structType: StructType,func: FunctionDefinition){
-//        val traitMap = traits.find { it.traitType.traitName == traitType.traitName }!!.traitType.traitMap
-//        val temp = traitMap.find { it.first.structName == structType.structName }
-//        if(temp != null){
-//            temp.second.add(func)
+    fun addTraitMap(traitStatement: TraitStatement,structType: StructType,functionDefinitions: MutableList<FunctionDefinition>){
+        traits.find { it.traitName == traitStatement.traitName }!!.traitMap.add(structType to functionDefinitions)
+        
+//        val funcList = traitMap.find { it.first.structName == structType.structName }
+//        if(funcList == null){
+//            traitMap.add(structType to functionDefinitions)
 //        }else{
-//            traitMap.add(structType to mutableListOf(func))
+//            println("addTraitMap funcList不为空 报错")
+////            funcList.second.add(functionDefinition)
 //        }
-//    }
+    }
     
+    fun getRandomTrait(ctx: Context): TraitStatement?{
+        if (ctx.getDepth(OptionType::class) > 0) {
+            val temp = symbolMap.toList()
+                .filter {
+                    it.second.type.memberTypes()
+                        .find { kClass -> kClass::class == MutableReferenceType::class } == null
+                }
+                .filter {
+                    it.second.type.memberTypes()
+                        .find { kClass -> kClass::class == MutableReferenceType::class } == null
+                }
+                .filter {
+                    it.second.type.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null
+                }
+                .filter { it.second.type.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
+                .filter { it.second.type.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
+                .filter {
+                    it.second.type.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null
+                }
+                .filter { it.second.type is TraitType }
+                .randomOrNull(CustomRandom)
+            if(temp == null)return null
+            else{
+                val traitType = temp.second.type as TraitType
+                return TraitStatement(traitType.traitName,traitType.traitFunctions,traitType.traitMap,traitType.symbolTable)
+            }
+        }
+        val temp = symbolMap.toList().filter { it.second.type is TraitType }.randomOrNull(CustomRandom)
+        if(temp == null)return null
+        else{
+            val traitType = temp.second.type as TraitType
+            return TraitStatement(traitType.traitName,traitType.traitFunctions,traitType.traitMap,traitType.symbolTable)
+        }
+    }
+    
+    fun getRandomTraitFunctionOfType(type: Type,ctx:Context): Pair<TraitStatement,Triple<String,Map<String,Type>,Type>>?{
+        if (ctx.getDepth(OptionType::class) > 0) {
+            var temp = symbolMap.toList()
+                .filter {
+                    it.second.type.memberTypes()
+                        .find { kClass -> kClass::class == MutableReferenceType::class } == null
+                }
+                .filter {
+                    it.second.type.memberTypes()
+                        .find { kClass -> kClass::class == MutableReferenceType::class } == null
+                }
+                .filter {
+                    it.second.type.memberTypes().find { kClass -> kClass::class == ReferenceType::class } == null
+                }
+                .filter { it.second.type.memberTypes().find { kClass -> kClass::class == BoxType::class } == null }
+                .filter { it.second.type.memberTypes().find { kClass -> kClass::class == RcType::class } == null }
+                .filter {
+                    it.second.type.memberTypes().find { kClass -> kClass::class == HashMapType::class } == null
+                }
+                .filter { it.second.type is TraitType }
+            if(temp == null)return null
+            else{
+                var t = temp.toList().filter { (it.second.type as TraitType).traitFunctions.filter { it.third==type }.isNotEmpty()}.randomOrNull(CustomRandom)
+                if(t==null)return null
+                val traitType=t.second.type as TraitType
+                val func=traitType.traitFunctions.filter { it.third==type }.randomOrNull(CustomRandom)!!
+                val traitStatement = TraitStatement(traitType.traitName,traitType.traitFunctions,traitType.traitMap,traitType.symbolTable)
+                return Pair(traitStatement,func)
+            }
+        }
+        val temp = symbolMap.toList().filter { it.second.type is TraitType }
+        if(temp == null)return null
+        else{
+            var t = temp.toList().filter { (it.second.type as TraitType).traitFunctions.filter { it.third==type }.isNotEmpty()}.randomOrNull(CustomRandom)
+            if(t==null)return null
+            val traitType = t.second.type as TraitType
+            val func=traitType.traitFunctions.filter { it.third==type }.randomOrNull(CustomRandom)!!
+            val traitStatement=TraitStatement(traitType.traitName,traitType.traitFunctions,traitType.traitMap,traitType.symbolTable)
+            return Pair(traitStatement,func)
+        }
+//        return traits.flatMap { trait -> trait.traitFunctions.map { trait to it } }
+//            .filter { it.second.third == type }.randomOrNull(CustomRandom)
+    }
+    
+    fun getRandomTraitFunctionOfTrait(traitStatement: TraitStatement,ctx: Context): Triple<String,Map<String,Type>,Type>? {
+        return traits.find { it.traitName == traitStatement.traitName }!!.traitFunctions.randomOrNull(CustomRandom)
+    }
+    fun getRandomTraitFunction(ctx: Context):Triple<String,Map<String,Type>,Type>?{
+        return traits.randomOrNull(CustomRandom)!!.traitFunctions.randomOrNull(CustomRandom)
+    }
     /* Tuple methods */
 
     fun addTupleType(type: TupleType) = tupleTypes.add(type.clone())
@@ -351,8 +432,6 @@ data class SymbolTable(
                         ) to pair
                     }.filter { it.second.second.assignable() }
                         .flatMap { findMutableSubExpressions(it.first) }
-//                    is TraitType -> listOf()
-
                     is TupleType -> type.argumentsToOwnershipMap.mapIndexed { index, pair ->
                         TupleElementAccessExpression(
                             expression, index, this

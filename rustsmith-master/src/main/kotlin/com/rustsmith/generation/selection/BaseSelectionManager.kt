@@ -40,8 +40,6 @@ open class BaseSelectionManager : SelectionManager {
      */
     override fun choiceGenerateNewStructWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
     
-//    override fun choiceGenerateNewTraitWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
-
     override fun choiceGenerateNewTupleWeightings(ctx: Context): Map<Boolean, Double> = mapOf(false to 1.0)
     
     override fun choiceGenerateNewVectorWeightings(ctx: Context) = mapOf(true to 0.5, false to 0.5)
@@ -75,6 +73,7 @@ open class BaseSelectionManager : SelectionManager {
         ctx.failedGenerationNodes.forEach {
             filteredStatements.remove(it)
         }
+        filteredStatements.remove(TraitStatement::class)
         if (filteredStatements.isEmpty()) {
             throw NoAvailableStatementException()
         }

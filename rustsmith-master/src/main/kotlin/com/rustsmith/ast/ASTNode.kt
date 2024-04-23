@@ -41,33 +41,33 @@ data class StructDefinition(
     }
 }
 
-//data class TraitDefinition(
-//    val traitName:String,
-//    val traitMap: MutableList<Pair<StructType,MutableList<FunctionDefinition>>> = mutableListOf()
-//) : ASTNode{
-//    override fun toRust(): String {
-////        return "$traitName"
-//        var str1="pub trait ${traitName} {\n"
-//        for((key,value) in traitMap){
-//            for(func in value){
-//                val self = if (func.addSelfVariable) "&self," else ""
-//                str1+="    fn ${func.functionName}($self ${func.arguments.map { "${it.key}:${it.value.toRust()}" }.joinToString { ", " }})->${func.returnType.toRust()};\n"
-//            }
-//            str1+="}"
-//            break
-//        }
-//        var str2=""
-//        for((key,value) in traitMap){
-//            str2+="impl ${traitName} for ${key.structName}{"
-//            for(func in value){
-//                str2+=func.toRust()
-//            }
-//            str2+="}\n"
-//        }
-//        return str1+str2
-//    }
-//}
-
+data class TraitDefinition(val trait: TraitStatement):ASTNode{
+    override fun toRust(): String {
+        var str=""
+        for (tri in trait.traitFunctions){
+            var args=tri.second.map { "${it.key}:${it.value.toRust()}" }.toList().joinToString(",")
+            if(args==""){
+                str+="fn ${tri.first} (&self,$args hasher: &mut DefaultHasher)->${tri.third.toRust()};\n"
+            }else{
+                str+="fn ${tri.first} (&self,$args,hasher: &mut DefaultHasher)->${tri.third.toRust()};\n"
+            }
+        }
+        var ans = "\npub trait ${trait.traitName} {\n$str}\n"
+        
+        for((structType,functionList) in trait.traitMap){
+            val parameterizedSyntax = if (structType.lifetimeParameters().isNotEmpty()) "<${
+                structType.lifetimeParameters().toSet().joinToString(",") { "'_" }
+            }>" else ""
+            str="\nimpl ${trait.traitName} for ${structType.structName}$parameterizedSyntax {\n"
+            for(func in functionList){
+                str+="${func.toRust()}"
+            }
+            str+="}\n"
+            ans+=str
+        }
+        return ans
+    }
+}
 
 data class TypeAliasDefinition(val aliasType: LifetimeParameterizedType<TypeAliasType>) : ASTNode {
     override fun toRust(): String {
@@ -84,11 +84,20 @@ data class Program(
     val constants: List<ConstDeclaration>,
     val aliases: List<TypeAliasDefinition>,
     val structs: List<StructDefinition> = emptyList(),
+    val traits: List<TraitDefinition> = emptyList(),
     val functions: List<FunctionDefinition>
 ) :
     ASTNode {
     override fun toRust(): String {
-        return "#![allow(warnings, unused, unconditional_panic)]\n" + "use std::rc::Rc;\nuse std::env;\nuse std::collections::hash_map::DefaultHasher;\nuse std::hash::{Hash, Hasher};\nuse std::collections::HashMap;\n" + "${constants.joinToString("\n") { it.toRust() }}\n" + "${macros.joinToString("\n") { it.toRust() }}\n" + "${structs.joinToString("\n") { it.toRust() }}\n" + "${aliases.joinToString("\n") { it.toRust() }}\n" + "${functions.joinToString("\n") { it.toRust() }}"
+        return  "#![allow(warnings, unused, unconditional_panic)]\n" +
+                "#![allow(arithmetic_overflow)]\n"+
+                "use std::rc::Rc;\nuse std::env;\nuse std::collections::hash_map::DefaultHasher;\nuse std::hash::{Hash, Hasher};\nuse std::collections::HashMap;\n" +
+                "${constants.joinToString("\n") { it.toRust() }}\n" +
+                "${macros.joinToString("\n") { it.toRust() }}\n" +
+                "${structs.joinToString("\n") { it.toRust() }}\n" +
+                "${traits.joinToString("\n") { it.toRust() }}\n" +
+                "${aliases.joinToString("\n") { it.toRust() }}\n" +
+                "${functions.joinToString("\n") { it.toRust() }}"
     }
 }
 
@@ -124,12 +133,15 @@ fun generateProgram(programSeed: Long, identGenerator: IdentGenerator, failFast:
             mainFunctionContext
         )
     }
+    val traits: List<TraitDefinition> = globalSymbolTable.traits.map { traitStatement -> TraitDefinition(traitStatement) }.toList()
+    
     return Program(
         programSeed,
         setOf(),
         constantDeclarations,
         globalSymbolTable.typeAliases.toList(),
         globalSymbolTable.structs.toList(),
+        traits,
         functionSymbolTable.functions + mainFunction
     ) to cliArguments
 }

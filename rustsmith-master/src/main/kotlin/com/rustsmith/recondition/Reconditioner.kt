@@ -20,6 +20,7 @@ class Reconditioner {
     private fun reconditionBinOpExpression(node: BinOpExpression): Expression {
         val (expr1, expr2) = reconditionExpression(node.expr1) to reconditionExpression(node.expr2)
         val symbolTable = node.symbolTable
+        reconditioningMacros.add(ReconditionedArrayAccess)
         return when (node) {
             is AddExpression -> if (node.toType() is IntType || node.toType() is UIntType) WrappingAdd(
                 node.copy(expr1 = expr1, expr2 = expr2),
@@ -106,9 +107,9 @@ class Reconditioner {
             )
 
             is FunctionCallExpression -> node.copy(args = node.args.map { reconditionExpression(it) })
+//            is TraitFunctionCallExpression -> node.copy(args = node.args.map { reconditionExpression(it) })
             is TupleLiteral -> node.copy(values = node.values.map { reconditionExpression(it) })
             is StructInstantiationExpression -> node.copy(args = node.args.map { it.first to reconditionExpression(it.second) })
-//            is TraitInstantiationExpression -> node
             is TupleElementAccessExpression -> node.copy(expression = reconditionExpression(node.expression))
             is StructElementAccessExpression -> node.copy(expression = reconditionExpression(node.expression))
             is LoopExpression -> node.copy(body = reconditionStatementBlock(node.body))
@@ -167,7 +168,10 @@ class Reconditioner {
                 structExpression = reconditionExpression(node.structExpression),
                 args = node.args.map { reconditionExpression(it) }
             )
-
+            is TraitFunctionCallExpression -> node.copy(
+                structExpression = reconditionExpression(node.structExpression),
+                args = node.args.map { reconditionExpression(it) }
+            )
             is TypeAliasExpression -> node.copy(internalExpression = reconditionExpression(node.internalExpression))
             is StaticSizedArrayDefaultLiteral -> node.copy(expression = reconditionExpression(node.expression))
             is StaticSizedArrayLiteral -> node.copy(expressions = node.expressions.map { reconditionExpression(it) })
@@ -198,7 +202,12 @@ class Reconditioner {
             is FetchCLIArgs -> node
             is PrintElementStatement -> node
             is ConstDeclaration -> node
-            is TraitStatement -> node
+            is TraitStatement -> node.copy(
+                traitMap = node.traitMap.map {
+                    it.first to it.second.map {
+                        it.copy(body = reconditionStatementBlock(it.body)) }.toMutableList()
+                }.toMutableList()
+            )
         }
     }
 
@@ -207,7 +216,6 @@ class Reconditioner {
             is Program -> {
                 nodeCounters[FunctionDefinition::class] = node.functions.size
                 nodeCounters[StructDefinition::class] = node.structs.size
-//                nodeCounters[TraitDefinition::class] = node.traits.size
                 val reconditionedFunctions = node.functions.map { it.copy(body = reconditionStatementBlock(it.body)) }
                 val reconditionedStructs = node.structs.map {
                     it.copy(
@@ -218,23 +226,14 @@ class Reconditioner {
                         }.toMutableList()
                     )
                 }
-//                val reconditionedTraits=node.traits
-//                val reconditionedTraits= node.traits.map {
-//                    it.traitType.traitMap.map {
-//                        it.copy(
-//                            second = it.second.map {
-//                                func -> func.copy(body = reconditionStatementBlock(func.body))
-//                            }.toMutableList()
-//                        )
-//                    }as TraitDefinition
-//                }
+                
                 Program(
                     node.seed,
                     reconditioningMacros,
                     node.constants,
                     node.aliases,
                     reconditionedStructs,
-//                    reconditionedTraits,
+                    node.traits,
                     reconditionedFunctions
                 )
             }
@@ -248,8 +247,15 @@ class Reconditioner {
                 methods = node.methods.map { it.copy(body = reconditionStatementBlock(it.body)) }
                     .toMutableList()
             )
-//            is TraitDefinition -> node
-            
+            is TraitDefinition -> node.copy(
+                trait = node.trait.copy(
+                    traitMap = node.trait.traitMap.map {
+                        it.first to it.second.map {
+                            it.copy(body = reconditionStatementBlock(it.body))
+                        } .toMutableList()
+                    }.toMutableList()
+                )
+            )
             is TypeAliasDefinition -> node
         }
     }

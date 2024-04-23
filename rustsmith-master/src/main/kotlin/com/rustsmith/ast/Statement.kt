@@ -14,12 +14,7 @@ data class TraitStatement(
     override val symbolTable: SymbolTable
 ) : Statement{
     override fun toRust(): String {
-        var str=""
-        for (tri in traitFunctions){
-            var args=tri.second.map { "${it.key}:${it.value.toRust()}" }.toList().joinToString(",")
-            str+="fn ${tri.first} ($args)->${tri.third.toRust()};\n"
-        }
-        return "pub trait $traitName {\n$str}"
+        return ""
     }
 }
 
